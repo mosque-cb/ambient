@@ -21,7 +21,7 @@
     (jtosx (handlejson (makejson (exactjson material))))))
 
 (defun  get (socket)
-  (send socket (concat (lineconcat (list (storage GET /?debug_info=as&rows=60&start=0&wt=json&q=美团机器学习实践&fl=vendor_Name,partnumber,brand_Name,auxdescription,three_groupName,three_groupExtName,author,isbn,unit_searchable_attr,title,two_groupName,threeGroupIds,short_brand_Id HTTP/1.0) 
+  (send socket (concat (lineconcat (list (storage GET /?debug_info=as&rows=60&start=0&wt=json&q=雅思兰黛小棕瓶&fl=vendor_Name,partnumber,brand_Name,auxdescription,three_groupName,three_groupExtName,author,isbn,unit_searchable_attr,title,two_groupName,threeGroupIds,short_brand_Id HTTP/1.0) 
                                          (storage Host: 127.0.0.1) 
                                          (storage U-ApiKey:8b6c51b8a18ccbdae3c7ac74169ec3da) 
                                          (storage Content-Length: 0)

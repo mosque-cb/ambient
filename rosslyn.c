@@ -13152,7 +13152,7 @@ void * analyse(void * _left, void ** _env)
         }
         head = c_car(present);
         if (head->em != VAR) {
-            cross_strcpy(debug_inf, "DEFUN/DEFMACRO shoule follows VAR as function name\r\n");
+            cross_strcpy(debug_inf, "DEFUN/DEFMACRO shoule follows VAR as function name, maybe original fun\r\n");
             return new_debug(debug_inf, cross_strlen(debug_inf));
         }
 
