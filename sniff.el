@@ -1,27 +1,3 @@
-(defun  worker(socket label)
-  (if (eq socket nil)
-      (progn
-        (close socket)          
-        (print (concat label 'SPACE  (storage not ok))))
-    (progn
-      (close socket)    
-      (print (concat label 'SPACE  (storage ok))))))
-
-(defun  blend(ip port)
-  (concat ip (storage :) port))
-
-(defun  fork(label server)
-  (worker (connect label)  (concat label 'SPACE server)))
-
-(defun dispatch(ip)
-  (progn
-    (fork (blend ip 21) 'ftp)
-    (fork (blend ip 22) 'ssh)
-    (fork (blend ip 23) 'telnet)    
-    (fork (blend ip 80) 'http)    
-    (fork (blend ip 8080) 'http)    
-    nop))
-
 (defun  reactor()
   (if (eofstdin)
       nil
@@ -33,30 +9,24 @@
  (reactor)
  )
 
-(defun incre(num)
-  (if (eq num 254)
+(defun incre(num ct)
+  (if (eq ct 30)
       nil
-    (cons num
-          (incre (add num 1)))))
+    (cons (timetodata (minus (unixtime) (mul num 86400)))
+          (incre (add num 1)
+                 (add ct 1)))))
 
-(defun link(pivot lst funp)
-  (if (eq lst nil)
-      nil
-    (progn
-      (funcall funp (concat pivot
-                            (storage .)
-                            (car lst)))
-      (link pivot
-            (cdr lst)))))
-
-(defun prolog(a b funp)
+(defun prolog(a funp)
   (if (eq a nil)
       nil
     (progn
-      (link (car a) b funp)
-      (prolog (cdr a) b funp))))
+      (funcall funp (car a))
+      (prolog (cdr a) funp))))
 
-(prolog (incre 1)
-        (incre 1)
-        (lambda (appdix) (dispatch (concat (storage 172.19.)
-                                           appdix))))
+(prolog (print (incre 9 0))
+        (lambda (appdix)
+          (system (print (concat 
+                          (storage nohup hadoop fs  -cat  /user/company/data/productB/ltr/ltr_datab/)
+                          appdix
+                          (storage /* | grep 摄像机高清家用  >) 
+                          appdix)))))

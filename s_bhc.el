@@ -18,7 +18,7 @@
   (progn
     (print 'network)
     (send  socket (concat (storage s_bhc)
-                          (timestring)))
+                          (timetostring (unixtime))))
     (handledata socket 0)
     (close socket)
     (routine (pget))

@@ -9,7 +9,7 @@
                    (timetostring time)
                    'SPACE 
                    'SPACE 
-                   (timestring)))
+                   (timetostring (unixtime))))
     nop))
 
 (defun wrap_trig(tt unixt)

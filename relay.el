@@ -5,7 +5,7 @@
   (jtosx (jaddobject
           (jaddobject (jcreate) 
                       'key
-                      (jcreatestring  (timestring)))
+                      (jcreatestring  (timetostring (unixtime))))
           'value
           (jaddobject
            (jcreate)

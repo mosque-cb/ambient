@@ -91,7 +91,7 @@
 
 (defun loop()
   (progn
-    (print (timestring))
+    (print (timetostring (unixtime)))
     (wrapprocess (get (connect (storage  yq01-heng-job.dmop.company.com:8030))
                       (storage /jobqueue.jsp?queueName=lbs-dingwei)))
     (sleep 100)

@@ -18,7 +18,7 @@
     (sleep (random 60))
     (rpush dict 
            (itoa (minute))
-           (timestring))
+           (timetostring (unixtime)))
     (print (status dict 
                    (itoa (minute))
                    0 

@@ -29,7 +29,7 @@
            (eq (car func) 'callback))
       (concat (cadr func) 
               'CURVEL 
-              (genematerial (timestring))
+              (genematerial (timetostring (unixtime)))
               'CURVER)
     (concat 'alert
             'CURVEL 

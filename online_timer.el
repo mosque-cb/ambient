@@ -3,7 +3,7 @@
     (atadd event 
            (add (unixtime) tt)
            (lambda() (progn
-                       (print (concat tt 'SPACE 'SPACE 'SPACE (timestring)))
+                       (print (concat tt 'SPACE 'SPACE 'SPACE (timetostring (unixtime))))
                        (multi event tt))))))
 
 (defun install(event)

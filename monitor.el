@@ -1,7 +1,7 @@
 (defun monitor_check(lst)
   (if  (eq lst nil)
       (progn
-        (print (timestring))
+        (print (timetostring (unixtime)))
         (system (storage nohup ./monocle  tshell.elf  1 > /dev/null    2>&1 & )))
     (print 'ok)))
 

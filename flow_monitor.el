@@ -118,7 +118,7 @@
 
 (defun loop()
   (progn
-    (print (timestring))
+    (print (timetostring (unixtime)))
     (print 'orcp_bj_nj)
     (trigger orcp_bj_nj 'orcp_bj_nj)
     (print 'nj_old)

@@ -6847,19 +6847,6 @@ void * original_unixtime(void * _left){
     return long_type(unixtime);
 }
 
-void * original_timestring(void * _left) {
-    type * outcome = primitive_empty;
-    char timestring[256] = "\0";
-    time_t rawtime;
-    struct tm * timeinfo;
-    time(&rawtime);
-    timeinfo = localtime(&rawtime);
-
-    cross_sprintf(timestring, "%d-%02d-%02d %02d:%02d:%02d", 1900 + timeinfo->tm_year, 1 + timeinfo->tm_mon, timeinfo->tm_mday, timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec);
-    outcome = new_storage(timestring, cross_strlen(timestring));
-    return outcome;
-}
-
 void * original_timetostring(void * _left) {
     type * present = c_car(_left);
     type * outcome = primitive_empty;
@@ -9941,7 +9928,6 @@ void * original_help(void * _left);
         ORIGINAL_CON(atwait, 1)
         ORIGINAL_CON(atadd, 3)
         ORIGINAL_CON(atcreate, 100)
-        ORIGINAL_CON(timestring, 0)
         ORIGINAL_CON(timetostring, 1)
         ORIGINAL_CON(timetodata, 1)
         ORIGINAL_CON(mon, 0)

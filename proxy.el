@@ -9,7 +9,7 @@
      (lambda (second)   (progn
                           (send  isocket
                                  (recv  osocket))
-                          (print (timestring))
+                          (print (timetostring (unixtime)))
                           (print (concat 
                                   (concat 'first 'SPACE first)
                                   'SPACE
@@ -24,7 +24,7 @@
      (lambda (second)   (progn
                           (send  osocket
                                  (recv  isocket))
-                          (print (timestring))
+                          (print (timetostring (unixtime)))
                           (print (concat 
                                   (concat 'first 'SPACE first)
                                   'SPACE

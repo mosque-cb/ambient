@@ -18,13 +18,13 @@
 (defun handlematerial(material)
   (if (eq material nil)
       nil
-    (jtosx (handlejson (makejson (exactjson material))))))
+    (print material)))
 
 (defun  network(socket key)
   (if (eq socket nil)
       nil
     (progn    
-      (send socket (concat (lineconcat (list (storage GET /?debug_info=as&rows=60&start=0&wt=json&q=)
+      (send socket (concat (lineconcat (list (storage GET /?debug_info=as&debug_id=123456&wwsy=yes&rows=60&start=0&wt=json&)
                                              key
                                              (storage &fl=vendor_Name,partnumber,brand_Name,auxdescription,three_groupName,three_groupExtName,author,isbn,unit_searchable_attr,title,two_groupName,threeGroupIds,short_brand_Id HTTP/1.0) 
                                              (storage Host: 127.0.0.1) 
@@ -46,6 +46,14 @@
     (print pid)
     nop))
 
+(defun ddd(material)
+  (if (eq (find material (storage seqid=)) nil)
+      (concat (storage q=iphone))
+    (print  (strdup
+             material
+             (find material (storage seqid=))
+             (strlen material)))))
+  
 (defun  worker(socket)
   (progn
     (print 'worker)
@@ -57,9 +65,15 @@
 (defun  terminal (mode lst)
   (if (eq mode 0)
       (worker (network (connect (storage 127.0.0.1:8888))
-                       lst))
-    (pcreate 1 'worker (network (connect (storage 127.0.0.1:8888))
-                                lst))))
+                       (concat (storage q=) lst)))
+    (if (eq mode 1)
+        (pcreate 1 'worker (network (connect (storage 127.0.0.1:8888))
+                                    (concat (storage q=) lst)))
+      (if (eq mode 2)
+          (worker (network (connect (storage 127.0.0.1:8888))
+                           (ddd lst)))
+        (pcreate 1 'worker (network (connect (storage 127.0.0.1:8888))
+                                    (ddd lst)))))))
 
 (defun  reactor(mode)
   (if (eofstdin)

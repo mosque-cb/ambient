@@ -94,7 +94,7 @@
     (pjoin left)
     (pjoin right)
     (print 'done)
-    (print (timestring))
+    (print (timetostring (unixtime)))
     (dispatch)))
 
 (defun dispatch()

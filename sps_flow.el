@@ -100,7 +100,7 @@
 
 (defun loop()
   (progn
-    (print (timestring))
+    (print (timetostring (unixtime)))
     (print 'sps)
     (trigger sps 'sps)
     (sleep 60)

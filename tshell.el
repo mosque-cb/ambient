@@ -23,10 +23,10 @@
                           (send  socket (concat 'LINE 
                                                 (display) 
                                                 'LINE
-                                                (timestring)
+                                                (timetostring (unixtime))
                                                 'LINE 
                                                 (storage arabic>)))
-                          (print (timestring))
+                          (print (timetostring (unixtime)))
                           (print (concat 
                                   (concat 'first 'SPACE first)
                                   'SPACE
