@@ -2227,6 +2227,147 @@ void * original_fload(void * _left) {
     return present;
 }
 
+void * original_forstorage(void * _left) {
+    type* left = primitive_empty;
+    type* res = primitive_empty;
+    type* present = primitive_empty;
+    char* response = NULL;     
+    char debug_inf[256] = "\0";
+    int storage_size = 0;
+    unsigned long* material = NULL;
+
+    left = c_car (_left);
+    if (left->em != LIST) {
+        cross_strcpy(debug_inf, "first para should be a LIST\r\n");
+        return new_debug(debug_inf, cross_strlen(debug_inf));
+    }
+
+    res = new_object();
+    res->em = STORAGE;
+    response = (char*)cross_calloc(BUF_SIZE, sizeof(char));
+
+    material = (unsigned long*)(response + sizeof(int));
+    for (present = left; present->em != EMPTY; present = c_cdr(present)) {
+        left = c_car(present);
+        if (left->em != BYTES) continue;
+        *material = left->u_data.i_data;
+        material++;
+        storage_size++;
+    }
+    if (0 == storage_size) {
+        cross_strcpy(debug_inf, "storage_size is zero\r\n");
+        return new_debug(debug_inf, cross_strlen(debug_inf));
+    }
+    
+    storage_size = storage_size * sizeof(unsigned long) / sizeof(char) + 1 + sizeof(int);
+    *(int*)response = storage_size - sizeof(int);
+    res->u_data.a_storage = response;
+    return res;
+}
+
+int comp(const void* a, const void* b) {
+    return *(unsigned long*)a - *(unsigned long*)b;
+}
+
+void * original_qsort(void * _left) {
+    type* left = primitive_empty;
+    type* present = primitive_empty;
+    char* response = NULL;     
+    char debug_inf[256] = "\0";
+    int storage_size = 0;
+    unsigned long* material = NULL;    
+
+    left = c_car (_left);
+    if (left->em != STORAGE) {
+        cross_strcpy(debug_inf, "first para should be a STORAGE\r\n");
+        return new_debug(debug_inf, cross_strlen(debug_inf));
+    }
+
+    response = left->u_data.a_storage ;
+    storage_size = *(int*)response  + sizeof(int);
+    storage_size = (storage_size - 1 -  sizeof(int)) /(sizeof(unsigned long)/sizeof(char));    
+    material = (unsigned long*)(response + sizeof(int));
+    qsort(material, storage_size, sizeof(unsigned long), comp);
+    return c_normal_copy(left);
+}
+
+void * original_idx(void * _left) {
+    type* left = primitive_empty;
+    type* right = primitive_empty;    
+    type* present = primitive_empty;
+    char* response = NULL;     
+    char debug_inf[256] = "\0";
+    int storage_size = 0;
+    unsigned long* material = NULL;
+
+    left = c_car (_left);
+    if (left->em != STORAGE) {
+        cross_strcpy(debug_inf, "first para should be a STORAGE\r\n");
+        return new_debug(debug_inf, cross_strlen(debug_inf));
+    }
+    right = c_cadr (_left);
+    if (right->em != BYTES) {
+        cross_strcpy(debug_inf, "second para should be a BYTES\r\n");
+        return new_debug(debug_inf, cross_strlen(debug_inf));
+    }    
+
+    response = left->u_data.a_storage;
+    storage_size = *(int*)response  + sizeof(int);
+    storage_size = (storage_size - 1 -  sizeof(int)) /(sizeof(unsigned long)/sizeof(char));
+
+    if (right->u_data.i_data >= storage_size) {
+        cross_strcpy(debug_inf, "second para too big\r\n");
+        return new_debug(debug_inf, cross_strlen(debug_inf));        
+    }
+    material = (unsigned long*)(response + sizeof(int));
+    return long_type(material[right->u_data.i_data]);
+}
+
+void* original_dumpstorage(void * _left) {
+    type* left = primitive_empty;
+    type* outcome = primitive_empty;    
+    char* response = NULL;     
+    char debug_inf[256] = "\0";
+    int storage_size = 0;
+    unsigned long* material = NULL;
+    int i = 0;
+
+    left = c_car (_left);
+    if (left->em != STORAGE) {
+        cross_strcpy(debug_inf, "first para should be a STORAGE\r\n");
+        return new_debug(debug_inf, cross_strlen(debug_inf));
+    }
+
+    response = left->u_data.a_storage;
+    storage_size = *(int*)response  + sizeof(int);
+    storage_size = (storage_size - 1 -  sizeof(int)) /(sizeof(unsigned long)/sizeof(char));
+    material = (unsigned long*)(response + sizeof(int));
+    for (i = 0; i < storage_size; i++) {
+        outcome = c_append(outcome, c_cons(long_type(material[i]), primitive_empty));
+    }
+    return outcome;
+}
+
+void * original_sz(void * _left) {
+    type* left = primitive_empty;
+    type* present = primitive_empty;
+    char* response = NULL;     
+    char debug_inf[256] = "\0";
+    int storage_size = 0;
+    unsigned long* material = NULL;
+
+    left = c_car (_left);
+    if (left->em != STORAGE) {
+        cross_strcpy(debug_inf, "first para should be a STORAGE\r\n");
+        return new_debug(debug_inf, cross_strlen(debug_inf));
+    }
+
+    response = left->u_data.a_storage;
+    storage_size = *(int*)response  + sizeof(int);
+    storage_size = (storage_size - 1 -  sizeof(int)) /(sizeof(unsigned long)/sizeof(char));
+    return long_type(storage_size);
+}
+
 void* original_funload(void * _left) {
     type* left = c_car (_left);
     type * present = c_cadr(_left);
@@ -10052,6 +10193,11 @@ void * original_help(void * _left);
         ORIGINAL_CON(system, 1)
         ORIGINAL_CON(exe, 100)
         ORIGINAL_CON(fload, 1)
+        ORIGINAL_CON(forstorage, 1)
+        ORIGINAL_CON(dumpstorage, 1)
+        ORIGINAL_CON(qsort, 1)
+        ORIGINAL_CON(idx, 2)
+        ORIGINAL_CON(sz, 1)
         ORIGINAL_CON(funload, 2)
         ORIGINAL_CON(fopen, 2)
         ORIGINAL_CON(ftell, 1)
