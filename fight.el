@@ -101,9 +101,9 @@
   (waiting 
    (pcreate
     1 
-    'wrapexpoler '/app/dt/ups 'a.xml nil)
+    'wrapexpoler '/app 'a.xml nil)
    (pcreate 
     1
-    'wrapexpoler '/app/dt/ups 'b.xml nil)))
+    'wrapexpoler '/app 'b.xml nil)))
 
 (dispatch)

@@ -1115,7 +1115,7 @@ void wrap_process(char *_lisa, int length, char *filename) {
 /*(code system end)*/
 #endif
 
-int raw_global_count = 10;
+int raw_global_count = 20;
 void * raw_withdraw(void);
 void * raw_new_object(void) {
     raw_type * outcome;
