@@ -5,13 +5,11 @@
       (close socket)
       (print ip))))
 
-
 (defun decide(ip)
   (worker 
    ip
    (connect
-    (concat (storage tcp://)
-            ip 
+    (concat ip
             (storage :) 
             8855))))
 

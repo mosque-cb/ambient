@@ -1472,7 +1472,7 @@ void* original_memory(void * _left) {
     type* right = c_car(_left);
     char debug_inf[256] = "\0";
     if (right->em != BYTES) {
-        cross_strcpy(debug_inf, "1st shoule be BYTES\r\n");
+        cross_strcpy(debug_inf, "1st --> BYTES\r\n");
         return new_debug(debug_inf, cross_strlen(debug_inf));
     }
 
@@ -1496,7 +1496,7 @@ void * original_cons(void * _left) {
 
     char debug_inf[256] = "\0";
     if ((right-> em != EMPTY) && (right->em != LIST)) {
-        cross_strcpy(debug_inf, "right value shoule be list or nil\r\n");
+        cross_strcpy(debug_inf, "2st --> list or nil\r\n");
         return new_debug(debug_inf, cross_strlen(debug_inf));
     }
     return c_cons(c_normal_copy(left), c_normal_copy(right));
@@ -2243,7 +2243,7 @@ void* original_funload(void * _left) {
         filename = left->u_data.a_storage + sizeof(int);
     }
     else {
-        cross_strcpy(debug_inf, "first para should be a VAR or STORAGE\r\n");
+        cross_strcpy(debug_inf, "1st --> a VAR or STORAGE\r\n");
         return new_debug(debug_inf, cross_strlen(debug_inf));
     }
 
@@ -2256,7 +2256,7 @@ void* original_funload(void * _left) {
         len = *(int*)present->u_data.a_storage - 1;
     }
     else{
-        cross_sprintf(debug_inf, "second para shoule be VAR or STORAGE type\r\n");
+        cross_sprintf(debug_inf, "2st --> VAR or STORAGE type\r\n");
         return new_debug(debug_inf, cross_strlen(debug_inf));
     }
 
@@ -2647,7 +2647,7 @@ void * original_add(void * _left) {
     for (present = left; present->em != EMPTY; present = c_cdr (present)) {
         right = c_car(present);
         if (right->em != BYTES) {
-            cross_strcpy(debug_inf, "value should be a BYTES\r\n");
+            cross_strcpy(debug_inf, "para -> BYTES\r\n");
             return new_debug(debug_inf, cross_strlen(debug_inf));
         }
         outcome += right->u_data.i_data;
@@ -6480,7 +6480,7 @@ void * original_killjson(void *_left) {
 
     left = c_car(_left);
     if(left->em != JSON) {
-        cross_strcpy(debug_inf, "1st shoule be a JSON type\r\n");
+        cross_strcpy(debug_inf, "1st --> a JSON type\r\n");
         return new_debug(debug_inf, cross_strlen(debug_inf));
     }
     json_result = (cjson*)left->u_data.i_data;
@@ -6502,7 +6502,7 @@ void * original_jgetobject(void * _left) {
         return primitive_empty;
     }
     if(left->em != JSON) {
-        cross_strcpy(debug_inf, "1st shoule be a JSON type\r\n");
+        cross_strcpy(debug_inf, "1st --> a JSON type\r\n");
         return new_debug(debug_inf, cross_strlen(debug_inf));
     }
     json = (cjson*)left->u_data.i_data;
@@ -6514,7 +6514,7 @@ void * original_jgetobject(void * _left) {
         key = (char*)(right->u_data.a_storage) + sizeof(int);
     }
     else {
-        cross_strcpy(debug_inf, "2st shoule be a VAR or STORAGE type\r\n");
+        cross_strcpy(debug_inf, "2st --> a VAR or STORAGE type\r\n");
         return new_debug(debug_inf, cross_strlen(debug_inf));
     }
 
@@ -6540,7 +6540,7 @@ void * original_jgetstring(void * _left) {
         return primitive_empty;
     }
     if(left->em != JSON) {
-        cross_strcpy(debug_inf, "1st shoule be a JSON type\r\n");
+        cross_strcpy(debug_inf, "1st --> a JSON type\r\n");
         return new_debug(debug_inf, cross_strlen(debug_inf));
     }
     json_result = (cjson*)left->u_data.i_data;
@@ -6563,7 +6563,7 @@ void * original_jgetint(void * _left) {
         return primitive_empty;
     }
     if(left->em != JSON) {
-        cross_strcpy(debug_inf, "1st shoule be a JSON type\r\n");
+        cross_strcpy(debug_inf, "1st --> a JSON type\r\n");
         return new_debug(debug_inf, cross_strlen(debug_inf));
     }
     json_result = (cjson*)left->u_data.i_data;
@@ -6601,7 +6601,7 @@ void * original_jgetkeys(void * _left) {
 
     left = c_car(_left);
     if(left->em != JSON){
-        cross_strcpy(debug_inf, "1st shoule be a JSON type\r\n");
+        cross_strcpy(debug_inf, "1st --> a JSON type\r\n");
         return new_debug(debug_inf, cross_strlen(debug_inf));
     }
     json_result = (cjson*)left->u_data.i_data;
@@ -6626,14 +6626,14 @@ void * original_jgetarrayitem(void * _left) {
 
     left = c_car(_left);
     if(left->em != JSON) {
-        cross_strcpy(debug_inf, "1st shoule be a JSON type\r\n");
+        cross_strcpy(debug_inf, "1st --> a JSON type\r\n");
         return new_debug(debug_inf, cross_strlen(debug_inf));
     }
     json_result = (cjson*)left->u_data.i_data;
 
     right = c_cadr(_left);
     if(right->em != BYTES) {
-        cross_strcpy(debug_inf, "2st shoule be a BYTES type\r\n");
+        cross_strcpy(debug_inf, "2st --> a BYTES type\r\n");
         return new_debug(debug_inf, cross_strlen(debug_inf));
     }
     index = right->u_data.i_data;
@@ -6818,7 +6818,7 @@ void * original_mktime(void * _left){
         str_time = present->u_data.a_storage + sizeof(int);
     }
     else {
-        cross_strcpy(debug_inf, "1st Shoule Be VAR or STORAGE Type\r\n");
+        cross_strcpy(debug_inf, "1st --> VAR or STORAGE Type\r\n");
         return new_debug(debug_inf, cross_strlen(debug_inf));
     }
   
@@ -7009,7 +7009,7 @@ void * original_exact(void *_left){
         return primitive_empty;
     }
     if (left->em != STORAGE) {
-        cross_strcpy(debug_inf, "1st shoule be a STORAGE\r\n");
+        cross_strcpy(debug_inf, "1st --> a STORAGE\r\n");
         return new_debug(debug_inf, cross_strlen(debug_inf));
     }
     begin = left->u_data.a_storage + sizeof(int);
@@ -7024,7 +7024,7 @@ void * original_exact(void *_left){
         return primitive_empty;
     }
     else {
-        cross_strcpy(debug_inf, "second para should be a VAR or STORAGE\r\n");
+        cross_strcpy(debug_inf, "2st --> a VAR or STORAGE\r\n");
         return new_debug(debug_inf, cross_strlen(debug_inf));
     }
 
@@ -7554,7 +7554,7 @@ void * original_encode(void * _left) {
     else{
         cross_free(response);
         cross_free(response_64);
-        cross_strcpy(debug_inf, "1st Shoule Be VAR or STORAGE Type\r\n");
+        cross_strcpy(debug_inf, "1st --> VAR or STORAGE Type\r\n");
         return new_debug(debug_inf, cross_strlen(debug_inf));
     }
     uri_encode((unsigned char*)source, source_size, response, &storage_size); 
@@ -7587,7 +7587,7 @@ void * original_decode(void * _left) {
     else{
         cross_free(response);
         cross_free(response_64);
-        cross_strcpy(debug_inf, "1st Shoule Be VAR or STORAGE Type\r\n");
+        cross_strcpy(debug_inf, "1st --> VAR or STORAGE Type\r\n");
         return new_debug(debug_inf, cross_strlen(debug_inf));
     }
     base64_decode(source, &source_size, (unsigned char*)response_64);
@@ -8377,7 +8377,7 @@ void * original_urlencode(void * _left) {
         source = left->u_data.a_storage + sizeof(int);
     }
     else{
-        color_fprintf(stderr, COLOR_GREEN, "1st shoule be VAR or STORAGE");
+        color_fprintf(stderr, COLOR_GREEN, "1st --> VAR or STORAGE");
         return primitive_empty;
     }
     strencode(response, source);
@@ -8452,7 +8452,7 @@ void * original_alive(void *_left) {
     char debug_inf[256] = "\0";
 
     if(left->em != NET) {
-        cross_snprintf(debug_inf, 256, "1st Shoule Be NET Type\r\n");
+        cross_snprintf(debug_inf, 256, "1st --> NET Type\r\n");
         return new_debug(debug_inf, strlen(debug_inf));
     }
 
@@ -8522,7 +8522,7 @@ void * original_close(void *_left) {
     }
 
     if (left->em != NET) {
-        cross_snprintf(debug_inf, 256, "1st Shoule Be NET Type\r\n");
+        cross_snprintf(debug_inf, 256, "1st --> NET Type\r\n");
         return new_debug(debug_inf, strlen(debug_inf));
     }
 
@@ -8558,10 +8558,10 @@ void * original_send(void *_left) {
 
     if(left->em != NET) {
         /*
-        cross_snprintf(debug_inf, 256, "1st Shoule Be NET Type\r\n");
+        cross_snprintf(debug_inf, 256, "1st --> NET Type\r\n");
         return new_debug(debug_inf, strlen(debug_inf));
         */
-        cross_fprintf(stderr, "1st Shoule Be NET Type\r\n");        
+        cross_fprintf(stderr, "1st --> NET Type\r\n");        
         outcome = primitive_empty;
         return outcome;
     }
@@ -8615,7 +8615,7 @@ void * original_fdtoint(void *_left) {
         return primitive_empty;
     }
     if(left->em != NET) {
-        snprintf(debug_inf, 256, "1st Shoule Be NET Type\r\n");
+        snprintf(debug_inf, 256, "1st --> NET Type\r\n");
         return new_debug(debug_inf, strlen(debug_inf));
     }
     new_fd = left->u_data.i_data;
@@ -8636,7 +8636,7 @@ void * original_recv(void *_left) {
         return primitive_empty;
     }
     if(left->em != NET) {
-        snprintf(debug_inf, 256, "1st Shoule Be NET Type\r\n");
+        snprintf(debug_inf, 256, "1st --> NET Type\r\n");
         return new_debug(debug_inf, strlen(debug_inf));
     }
     new_fd = left->u_data.i_data;
@@ -8665,7 +8665,7 @@ void * original_recv(void *_left) {
             wait_time = left->u_data.i_data;
         }
         else {
-            snprintf(debug_inf, 256, "2st Shoule Be BYTES Type\r\n");
+            snprintf(debug_inf, 256, "2st --> BYTES Type\r\n");
             return new_debug(debug_inf, strlen(debug_inf));
         }
     }
@@ -8697,7 +8697,7 @@ void * original_accept(void *_left) {
     char* peer_ip = NULL; 
 
     if (left->em != NET) {
-        snprintf(debug_inf, 256, "1st Shoule Be NET Type\r\n");
+        snprintf(debug_inf, 256, "1st --> NET Type\r\n");
         return new_debug(debug_inf, strlen(debug_inf));
     }
 
@@ -8855,7 +8855,7 @@ void * original_peer(void *_left) {
         return primitive_empty;
     }
     if (left->em != NET) {
-        cross_snprintf(debug_inf, 256, "1st Shoule Be NET Type\r\n");
+        cross_snprintf(debug_inf, 256, "1st --> NET Type\r\n");
         return new_debug(debug_inf, strlen(debug_inf));
     }
     cross_snprintf(debug_inf, 256, (char*)left->next);
@@ -9826,7 +9826,7 @@ void * original_atcreate(void *_left) {
             contain_count = left->u_data.i_data;
         }
         else {
-            snprintf(debug_inf, 256, "2st Shoule Be BYTES Type\r\n");
+            snprintf(debug_inf, 256, "2st --> BYTES Type\r\n");
             return new_debug(debug_inf, strlen(debug_inf));
         }
     }
@@ -11251,7 +11251,7 @@ void * execution(char* this, int _step) {
             } 
             else {
                 if (present->em != VAR) {
-                    cross_strcpy(debug_inf, "FUNCALL name is INVALID, shoule be VAR\r\n");
+                    cross_strcpy(debug_inf, "FUNCALL name is INVALID, --> VAR\r\n");
                     typology = new_debug(debug_inf, cross_strlen(debug_inf));
                     gc(present);
                     goto yield_out;
@@ -11339,7 +11339,7 @@ void * execution(char* this, int _step) {
             typology = forth_data_array_inner[forth_data_ipc_inner - 1];
             present = c_car(typology);
             if (present->em != BYTES) {
-                cross_sprintf(debug_inf, "sleep value shoule be a integer\r\n");
+                cross_sprintf(debug_inf, "sleep value --> a integer\r\n");
                 typology = new_debug(debug_inf, cross_strlen(debug_inf));
                 gc(typology);
                 goto yield_out;
@@ -11434,13 +11434,13 @@ void* check_status(char* this) {
     }
 }
 
-int global_in_un_install = 0;
+int global_timer_count = 0;
 
 void at_ok_pthread() {
     type * typology = NULL;
     callback_time* te = NULL;
     color_fprintf(stderr, COLOR_RED, "pthread num:%d\r\n", at_num(&global_timer_loop));
-    color_fprintf(stderr, COLOR_RED, "global_in_un_install:%d\r\n", global_in_un_install);
+    color_fprintf(stderr, COLOR_RED, "global_timer_count:%d\r\n", global_timer_count);
    
     while (at_num(&global_timer_loop) > 1){
         te = at_top(&global_timer_loop);
@@ -11534,7 +11534,7 @@ void* dispatch_core(char* that) {
                 at_ok_pthread();                
             }
             else {
-                global_in_un_install = global_in_un_install + 1;
+                global_timer_count = global_timer_count + 1;
     
                 at_ok_pthread();
                 assign(this, (void *)typology,
@@ -11543,7 +11543,7 @@ void* dispatch_core(char* that) {
         
                 te = (callback_time*)cross_malloc(sizeof(*te));
                 //                atGetTime(&te->when_sec);
-                te->when_sec = global_in_un_install;
+                te->when_sec = global_timer_count;
                 te->lambda = this;
                 status = at_insert(te, &global_timer_loop);
             }
@@ -11632,10 +11632,8 @@ void prepare_dispatch(char* this,
     dispatch_info* task = NULL;
     execution_install(this, _env, forth_code, begin, end);
 
-    //    task = (dispatch_info*)cross_malloc(sizeof(*task));
-    task = (dispatch_info*)cross_malloc(BUF_SIZE);    
-    //    task->this = (char*)cross_malloc(strlen(this) + 1);
-    task->this = (char*)cross_malloc(BUF_SIZE);    
+    task = (dispatch_info*)cross_malloc(sizeof(*task));
+    task->this = (char*)cross_malloc(strlen(this) + 1);
     cross_memcpy(task->this, this, strlen(this));
     task->socket = socket;
     task->address = address;
@@ -13135,7 +13133,7 @@ void * analyse(void * _left, void ** _env)
         }
         mid_x = c_car(present);
         if (mid_x->em != LIST) {
-            cross_strcpy(debug_inf, "iter/lambda 1st shoule be parameter list\r\n");
+            cross_strcpy(debug_inf, "iter/lambda 1st --> parameter list\r\n");
             return new_debug(debug_inf, cross_strlen(debug_inf));
         }
         mid_x = c_cdr(present);
@@ -13166,7 +13164,7 @@ void * analyse(void * _left, void ** _env)
 
         mid_x = c_car(mid_x);
         if (mid_x->em != LIST) {
-            cross_strcpy(debug_inf, "DEFUN/DEFMACRO shoule be a parameter list\r\n");
+            cross_strcpy(debug_inf, "DEFUN/DEFMACRO --> a parameter list\r\n");
             return new_debug(debug_inf, cross_strlen(debug_inf));
         }
 
@@ -13280,12 +13278,11 @@ void * original_pcreate(void * _left) {
             para = forth_code[forth_find + 1];
             outcome = c_cddr(_left);
             if(calc_length(para) != calc_length(outcome)) {
-                cross_snprintf(debug_inf, 256, "para key and value shoule be the same\r\n");
+                cross_snprintf(debug_inf, 256, "para key and value --> the same\r\n");
                 return new_debug(debug_inf, strlen(debug_inf));
             }
 
-            //            _env = (void**)cross_calloc(sizeof(void*), 1);
-            _env = (void**)cross_calloc(sizeof(void*), BUF_SIZE/sizeof(void*));            
+            _env = (void**)cross_calloc(sizeof(void*), 1);
             *_env = primitive_empty;
             /*need not c_normal_copy outcome, think why*/            
             c_bindvars(para, outcome, _env);
@@ -14022,7 +14019,7 @@ int main(int argc, char ** argv) {
     if (argc == 1) {
         gc(original_display(primitive_empty));
         cross_fprintf(stderr, "WELCOME!!\r\n");
-        cross_fprintf(stderr, "arabic>");
+        cross_fprintf(stderr, "ambient>");
         while (fgets(buf, 10240, stdin) != NULL) {
             para = new_storage(buf, strlen(buf));
             para = c_list(para, long_type(2), 0);
@@ -14032,7 +14029,7 @@ int main(int argc, char ** argv) {
             cross_fprintf(stderr, "\r\n");
             gc(present);
             gc(original_display(primitive_empty));
-            cross_fprintf(stderr, "\r\narabic>");
+            cross_fprintf(stderr, "\r\nambient>");
         }
     } 
     else {

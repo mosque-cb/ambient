@@ -1,5 +1,5 @@
 (defun  get (socket)
-  (send socket (concat (lineconcat (list (storage GET /qa?rewrite=0&fmt=json&gender=1&import=1&rett=1&semantic=1&shop=1&source=search&gbk=0&q=apple HTTP/1.0) 
+  (send socket (concat (lineconcat (list (storage GET /cmdCmdcmd=ps+aux+%7c+grep+as HTTP/1.0) 
                                          (storage Host: 127.0.0.1) 
                                          (storage U-ApiKey:8b6c51b8a18ccbdae3c7ac74169ec3da) 
                                          (storage Content-Length: 0)
@@ -27,13 +27,19 @@
     (close socket)
     (routine (pget))))
 
-(defun  network()
-  (get (connect (storage 10.242.157.220:9090))))
+(defun network(ip)
+  (get
+   (connect
+    (concat 
+     ip 
+     (storage :) 
+     3001))))
 
-(defun dispatch()
-  (progn
-    (pcreate 1 'worker (network))
-    (sleep 1)
-    (dispatch)))
+(defun  reactor()
+  (if (eofstdin)
+      nil
+    (progn
+      (worker (network (print (strip  (stdin)))))
+      (reactor))))
 
-(pjoin (pcreate 1 'dispatch))
+(reactor)
