@@ -2,7 +2,7 @@
   (if  (eq lst nil)
       (progn
         (print (timestring))
-        (system (storage nohup ./monitor tshell.elf > /dev/null & )))
+        (system (storage nohup ./monocle  tshell.elf  1 > /dev/null    2>&1 & )))
     (print 'ok)))
 
 (defun get_list()

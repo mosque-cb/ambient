@@ -9854,9 +9854,12 @@ typedef struct type_info {
 } type_info;
 
 void * var_type(char * name) {
+    int i = 0;
     type * outcome = new_object();
     outcome->em = VAR;
-    cross_strcpy(outcome->u_data.s_data, name);
+    for (i = 0; i < ARABIC; i++) {
+        *(outcome->u_data.s_data + i) = *(name + i);
+    }
     return outcome;
 }
 
@@ -13191,7 +13194,8 @@ void * analyse(void * _left, void ** _env)
             }
         }
         else{
-            cross_fprintf(stderr, "%s should be a function name, maybe error, leave for link detect \r\n", head->u_data.s_data);
+            color_fprintf(stderr, COLOR_GREEN, "%s should be a function name, maybe error, leave for link detect \r\n", head->u_data.s_data);
+            fflush(stderr);            
             return primitive_empty;
         }
         return primitive_empty;
