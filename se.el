@@ -19,7 +19,7 @@
 
 (defun landr(avalue b height low mid lr)
   (calc avalue
-        (idx b mid)
+        (idx_longs b mid)
         height
         mid
         low
@@ -36,53 +36,53 @@
                 2)
            lr)))
 
-(defun wrapbinarys(i a alen b br bl)
+(defun wrapse(i a alen b br bl)
   (if (eq alen 
           (add 1 (mul 2 i)))
       (print (storage i map))
-    (binarys
+    (se
      (add i 1)
      a
      alen
      b
-     (wraplr (idx a (minus alen i 1))
+     (wraplr (idx_longs a (minus alen i 1))
              b
              br
              bl
              br)
      bl)))
 
-(defun binarys(i a alen b br bl)
+(defun se(i a alen b br bl)
   (if (big i (div alen 2))
       (print (storage i big))
     (if (eq alen 
             (mul 2 i))
         (print (storage i equ))
-      (wrapbinarys
+      (wrapse
        i
        a
        alen
        b
        br
-       (wraplr (idx a i)
+       (wraplr (idx_longs a i)
                b
                br
                bl
                bl)))))
 
 (defun intersection(a b)
-  (binarys
+  (se
    0
    a
-   (sz a)
+   (size_longs a)
    b
-   (minus (sz b) 1)
+   (minus (size_longs b) 1)
    0))
 
 (defun dispatch(a b)
   (intersection
-   (qsort (forstorage a))
-   (qsort (forstorage b))))
+   (qsort (for_longs a))
+   (qsort (for_longs b))))
 
 (defun  gendata(n)
   (if (eq n 0)

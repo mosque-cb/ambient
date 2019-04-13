@@ -54,7 +54,7 @@
       (progn
         (print 'cmu)
         (send  isocket
-               (compressbytes (cons 5 
+               (for_bytes (cons 5 
                                     (cons 0 
                                           (cons 0 
                                                 (cons 1 
@@ -87,7 +87,7 @@
        et
        socket 
        (connect   (structip
-                     (dns (compressbytes (head material length)))
+                     (dns (for_bytes (head material length)))
                      (tail material length)))))
 
 (defun mydns(en et echo socket)
@@ -127,10 +127,10 @@
 (defun response(en et socket)
   (progn
     (send  socket
-           (compressbytes (cons 5 (cons 0 nil))))
+           (for_bytes (cons 5 (cons 0 nil))))
     (trans en
            et
-           (decompressbytes (saferecv en socket (recv socket)))
+           (dump_bytes (saferecv en socket (recv socket)))
            socket)))
 
 (defun  remote(en et echo socket)
@@ -147,7 +147,7 @@
 (defun  handle (en et socket)
   (remote en
           et
-          (decompressbytes (saferecv en socket (recv socket)))
+          (dump_bytes (saferecv en socket (recv socket)))
           socket))
 
 (defun dispatch (en et times)

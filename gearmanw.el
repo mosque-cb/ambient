@@ -9,15 +9,15 @@
   (progn
     (print 'waiting)
     (send  socket req)
-    (send  socket (compressbytes (cons 0 (cons 0 (cons 0 (cons 4 nil))))))
-    (send  socket (compressbytes (cons 0 (cons 0 (cons 0 (cons 0 nil))))))))
+    (send  socket (for_bytes (cons 0 (cons 0 (cons 0 (cons 4 nil))))))
+    (send  socket (for_bytes (cons 0 (cons 0 (cons 0 (cons 0 nil))))))))
 
 (defun  response(socket material)
   (progn
     (print 'response)
     (send  socket req)
-    (send  socket (compressbytes (cons 0 (cons 0 (cons 0 (cons 13 nil))))))
-    (send  socket (compressbytes (cons 0 (cons 0 (cons 0 (cons (strlen material) nil))))))
+    (send  socket (for_bytes (cons 0 (cons 0 (cons 0 (cons 13 nil))))))
+    (send  socket (for_bytes (cons 0 (cons 0 (cons 0 (cons (strlen material) nil))))))
     (send  socket material)
     (sleep 5)
     (waiting socket)))
@@ -25,19 +25,19 @@
 (defun  findtrunk(socket handle material now)
   (if (eq (car material) 0)
       (progn
-        (print (concat (storage func is:) (compressbytes now)))
-        (if (eq (compressbytes now) 'echo)
+        (print (concat (storage func is:) (for_bytes now)))
+        (if (eq (for_bytes now) 'echo)
             (response socket 
                       (concat handle
-                              (compressbytes (cons 0 nil))
+                              (for_bytes (cons 0 nil))
                               (storage gearmanw.el_echo_)
-                              (compressbytes (cdr material))))
-          (if (eq (compressbytes now) 'rr)
+                              (for_bytes (cdr material))))
+          (if (eq (for_bytes now) 'rr)
               (response socket 
                         (concat handle
-                                (compressbytes (cons 0 nil))
+                                (for_bytes (cons 0 nil))
                                 (storage gearmanw.el_rr_)
-                                (compressbytes (cdr material))))
+                                (for_bytes (cdr material))))
             nil)))
     (findtrunk socket  handle (cdr material)
                (append now (car material)))))
@@ -45,9 +45,9 @@
 (defun  business(socket material now)
   (if (eq (car material) 0)
       (progn
-        (print (concat (storage handle is:) (compressbytes now)))
+        (print (concat (storage handle is:) (for_bytes now)))
         (findtrunk socket 
-                   (compressbytes now)
+                   (for_bytes now)
                    (cdr material)
                    nil))
     (business socket (cdr material)
@@ -95,16 +95,16 @@
   (progn
     (print 'check)
     (send  socket req)
-    (send  socket (compressbytes (cons 0 (cons 0 (cons 0 (cons 9 nil))))))
-    (send  socket (compressbytes (cons 0 (cons 0 (cons 0 (cons 0 nil))))))
-    (handler socket (decompressbytes (recv socket 1000000)))))
+    (send  socket (for_bytes (cons 0 (cons 0 (cons 0 (cons 9 nil))))))
+    (send  socket (for_bytes (cons 0 (cons 0 (cons 0 (cons 0 nil))))))
+    (handler socket (dump_bytes (recv socket 1000000)))))
 
 (defun  register(socket funname)
   (progn
     (print 'register)
     (send  socket req)
-    (send  socket (compressbytes (cons 0 (cons 0 (cons 0 (cons 1 nil))))))
-    (send  socket (compressbytes (cons 0 (cons 0 (cons 0 (cons (strlen funname) nil))))))
+    (send  socket (for_bytes (cons 0 (cons 0 (cons 0 (cons 1 nil))))))
+    (send  socket (for_bytes (cons 0 (cons 0 (cons 0 (cons (strlen funname) nil))))))
     (send  socket funname)))
 
 (defun  proxy()
@@ -112,7 +112,7 @@
 
 (defun  noop(socket)
   (progn
-    (handler socket (decompressbytes (recv socket 1000000)))
+    (handler socket (dump_bytes (recv socket 1000000)))
     (noop socket)))
 
 (defun  dispatch(socket req)
@@ -126,4 +126,4 @@
     (noop socket)))
 
 (dispatch (proxy)
-          (compressbytes (cons 0 (cons 82 (cons 69 (cons 81 nil))))))
+          (for_bytes (cons 0 (cons 82 (cons 69 (cons 81 nil))))))

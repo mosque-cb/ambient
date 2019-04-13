@@ -34,7 +34,7 @@
                  (eq 25 (exactsize (linesplit material))))
             (print (getdata 
                     (tail 
-                          (decompressbytes (strdup material
+                          (dump_bytes (strdup material
                                                    (add 4 (find material (concat 'LINE 'LINE)))
                                                    (strlen material)))
                           7)))
@@ -72,7 +72,7 @@
             (concathelper (cdr lst)))))
 
 (defun  formatdata(cid lac mnc mcc)
-  (compressbytes
+  (for_bytes
    (concathelper
     (print    (list
                (cons 0 nil)

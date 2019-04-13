@@ -48,7 +48,7 @@
       (progn
         (print 'cmu)
         (send  isocket
-               (compressbytes (cons 5 
+               (for_bytes (cons 5 
                                     (cons 0 
                                           (cons 0 
                                                 (cons 1 
@@ -81,7 +81,7 @@
   (cmu (aecreate 'select)
        socket 
        (connect   (structip
-                     (dns (compressbytes (head material length)))
+                     (dns (for_bytes (head material length)))
                      (tail material length)))))
 
 (defun mydns(echo socket)
@@ -115,8 +115,8 @@
 (defun response(socket)
   (progn
     (send  socket
-           (compressbytes (cons 5 (cons 0 nil))))
-    (trans (decompressbytes (recv socket))
+           (for_bytes (cons 5 (cons 0 nil))))
+    (trans (dump_bytes (recv socket))
            socket)))
 
 (defun  remote(echo socket)
@@ -132,7 +132,7 @@
         (close socket)))))
 
 (defun  handle (socket)
-  (remote (decompressbytes (recv  socket))
+  (remote (dump_bytes (recv  socket))
           socket))
 
 (defun dispatch (socket)

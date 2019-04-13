@@ -40,7 +40,7 @@
 (defun request(socket)
   (progn
     (send  socket
-           (compressbytes (cons 5 
+           (for_bytes (cons 5 
                               (cons 1 
                                     (cons 0 
                                           (cons 1 
@@ -50,7 +50,7 @@
                                                                   (cons 1 
                                                                         (cons 33 
                                                                               (cons 80 nil))))))))))))
-    (trans (decompressbytes (recv socket))
+    (trans (dump_bytes (recv socket))
                         socket)))
 
 (defun  remote(echo socket)
@@ -68,8 +68,8 @@
   (progn
     (print 'header)
     (send  socket
-           (compressbytes (cons 5 (cons 1 (cons 0 nil)))))
-    (remote (decompressbytes (recv socket))
+           (for_bytes (cons 5 (cons 1 (cons 0 nil)))))
+    (remote (dump_bytes (recv socket))
                          socket)))
 
 (defun  proxy()
