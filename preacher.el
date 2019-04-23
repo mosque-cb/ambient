@@ -29,31 +29,31 @@
       (printlst (cdr n) ))))
 
 (defun evprogn ()
-  (if  (eq   (top  zendata)  nil)
+  (if  (eq   (top_ptr  'zendata)  nil)
       (progn
-        (eject   zendata)
-        (press  zendata (eject   zencode)))
+        (remove_ptr   'zendata)
+        (add_ptr  'zendata (remove_ptr   'zencode)))
     (progn
-      (press  zencode  (car  (top zendata)))
-      (exchange   zencode)
-      (eject   zencode)
-      (press  zendata  (cdr  (top zendata)))
-      (exchange   zendata)
-      (eject   zendata)
+      (add_ptr  'zencode  (car  (top_ptr 'zendata)))
+      (exchange   'zencode)
+      (remove_ptr   'zencode)
+      (add_ptr  'zendata  (cdr  (top_ptr 'zendata)))
+      (exchange   'zendata)
+      (remove_ptr   'zendata)
       (evprogn ))))
 
 (defun  evif ()
   (progn
-    (if  (eject zendata)
+    (if  (remove_ptr 'zendata)
         (progn
-          (press  zencode  (caddr  (top zencode)))
-          (exchange   zencode)
-          (eject   zencode)
+          (add_ptr  'zencode  (caddr  (top_ptr 'zencode)))
+          (exchange   'zencode)
+          (remove_ptr   'zencode)
           (wrapeval))
       (progn
-        (press  zencode  (cadr (cddr  (top zencode))))
-        (exchange   zencode)
-        (eject   zencode)
+        (add_ptr  'zencode  (cadr (cddr  (top_ptr 'zencode))))
+        (exchange   'zencode)
+        (remove_ptr   'zencode)
         (wrapeval)))))
 
 (defun  formstruct (lst)
@@ -66,9 +66,9 @@
 
 (defun  wrapdefun (lst )
   (progn
-    (setq  globaldefun  
-           (cons   lst  
-                   (whole   globaldefun)))
+    (seq  globaldefun  
+          (cons   lst  
+                  (geq   globaldefun)))
     (print  'wrapdefun)))
 
 (defun  funp(name global)
@@ -104,8 +104,8 @@
     (if  (eq  arg  
               (car  (car env)))
         (progn
-          (progn (setq midx  
-                       (cadr (car env))))
+          (progn (seq midx  
+                      (cadr (car env))))
           1)
       (varfind arg  
                (cdr env)))))
@@ -121,154 +121,167 @@
 (defun  findvar  (arg  env)
   (if  (varfind   arg    
                   (car env))
-      (whole midx)
+      (geq midx)
     (findvar  arg  
               (cdr env))))
 
 (defun   evargslast()
   (progn
-    (if  (eq  (top zencode)
+    (if  (eq  (top_ptr 'zencode)
               'evprogn)
         (progn
-          (eject zencode)
-          (press  zencode  nil)
+          (remove_ptr 'zencode)
+          (add_ptr  'zencode  nil)
           (evprogn)
           (popjreturn))
-      (if  (eq  (top zencode)
+      (if  (eq  (top_ptr 'zencode)
                 'printpos)
           (progn
-            (eject zencode)
-            (press  zencode
-                    (printpos  (eject zendata)))
-            (press zendata (eject  zencode))
+            (remove_ptr 'zencode)
+            (add_ptr  'zencode
+                       (printpos  (remove_ptr 'zendata)))
+            (add_ptr 'zendata (remove_ptr  'zencode))
             (popjreturn))
-        (if  (eq  (top zencode)
+        (if  (eq  (top_ptr 'zencode)
                   'printlst)
             (progn
-              (eject zencode)
-              (progn  (press  zencode
-                              (printlst  (eject  zendata))))
-              (progn  (press zendata  (eject zencode)))
+              (remove_ptr 'zencode)
+              (progn  (add_ptr  'zencode
+                                 (printlst  (remove_ptr  'zendata))))
+              (progn  (add_ptr 'zendata  (remove_ptr 'zencode)))
               (popjreturn))
-          (if  (primitivep  (top zencode))
+          (if  (primitivep  (top_ptr 'zencode))
               (progn
-                (progn  (setq midx
-                              (primitive (eject zencode)
-                                         (eject  zendata))))
-                (progn  (press zendata  midx))
+                (progn  (seq midx
+                             (primitive (remove_ptr 'zencode)
+                                        (remove_ptr  'zendata))))
+                (progn  (add_ptr 'zendata  midx))
                 (popjreturn))
             (sapply)
             ))))))
 
 (defun  sapply ()
   (progn    
-    (progn  (press zencode 
-                   (findexpr (top zencode)
-                             (whole globaldefun))))
-    (progn  (exchange  zencode))
-    (eject  zencode)
-    (progn  (setq  env 
-                   (bindvars         (car (top zencode))
-                                     (eject  zendata)
-                                     (whole  env))))
-    (progn  (press zencode  (cadr  (top zencode))))
-    (progn  (exchange  zencode))
-    (eject  zencode)
+    (progn  (add_ptr 'zencode 
+                      (findexpr (top_ptr 'zencode)
+                                (geq globaldefun))))
+    (progn  (exchange  'zencode))
+    (remove_ptr  'zencode)
+    (progn  (seq  'env 
+                  (bindvars         (car (top_ptr 'zencode))
+                                    (remove_ptr  'zendata)
+                                    (geq  'env))))
+    (progn  (add_ptr 'zencode  (cadr  (top_ptr 'zencode))))
+    (progn  (exchange  'zencode))
+    (remove_ptr  'zencode)
     (wrapeval)))
+
+(defun   append (a b)
+  (if (eq a nil)
+      b
+    (cons (car a)
+          (append (cdr a)
+                  b))))
+  
+(defun   combi (a b addr)
+  (add_ptr addr
+           (append b a)))
 
 (defun   evargscombi ()
   (progn
-    (progn  (combi  zendata))
-    (progn  (setq   env 
-                    (eject  zencode)))
+    (progn  (combi  (remove_ptr 'zendata)
+                    (remove_ptr 'zendata)
+                    'zendata))
+    (progn  (seq   'env 
+                   (remove_ptr  'zencode)))
     (evargs)))
 
 (defun   evargs()
   (progn
-    (if  (eq (top zencode)  nil)
+    (if  (eq (top_ptr 'zencode)  nil)
         (progn
-          (eject  zencode)
+          (remove_ptr  'zencode)
           (evargslast))
       (progn
-        (progn   (press   zendata  
-                          (car (top zencode))))
-        (progn   (press   zencode  
-                          (cdr (top zencode))))
-        (progn  (exchange  zencode))
-        (eject  zencode)
+        (progn   (add_ptr   'zendata  
+                             (car (top_ptr 'zencode))))
+        (progn   (add_ptr   'zencode  
+                             (cdr (top_ptr 'zencode))))
+        (progn  (exchange  'zencode))
+        (remove_ptr  'zencode)
 
-        (progn   (press   zencode  
-                          (whole env)))
+        (progn   (add_ptr   'zencode  
+                             (geq 'env)))
 
-        (progn   (press   zencode  
-                          'evargscombi))
-        (progn   (press   zencode  
-                          (eject  zendata)))
+        (progn   (add_ptr   'zencode  
+                             'evargscombi))
+        (progn   (add_ptr   'zencode  
+                             (remove_ptr  'zendata)))
         (wrapeval)))))
 
 (defun  popjreturn ()
   (progn
-    (if  (eq (top zencode) nil)
-        (eject  zendata)
-      (funcall  (eject zencode)))))
+    (if  (eq (top_ptr 'zencode) nil)
+        (remove_ptr  'zendata)
+      (funcall  (remove_ptr 'zencode)))))
 
 (defun   wrapeval ()
   (progn
-    (if  (digitp  (top zencode ))
+    (if  (digitp  (top_ptr 'zencode ))
         (progn
-          (progn  (press  zendata
-                          (eject zencode)))
+          (progn  (add_ptr  'zendata
+                             (remove_ptr 'zencode)))
           (popjreturn))
-      (if  (eq  (top zencode) nil)
+      (if  (eq  (top_ptr 'zencode) nil)
           (progn
-            (progn  (press  zendata  (eject zencode)))
+            (progn  (add_ptr  'zendata  (remove_ptr 'zencode)))
             (popjreturn))
-        (if  (charp  (top zencode))
+        (if  (charp  (top_ptr 'zencode))
             (progn
-              (progn  (press  zendata
-                              (findvar (eject zencode)
-                                       (whole  env))))
+              (progn  (add_ptr  'zendata
+                                 (findvar (remove_ptr 'zencode)
+                                          (geq  'env))))
               (popjreturn))
-          (if  (eq (car (top zencode))  'quote)
+          (if  (eq (car (top_ptr 'zencode))  'quote)
               (progn
-                (progn  (press  zendata
-                                (cadr  (eject zencode))))
+                (progn  (add_ptr  'zendata
+                                   (cadr  (remove_ptr 'zencode))))
                 (popjreturn))
-            (if  (eq (car (top zencode))  'if)
+            (if  (eq (car (top_ptr 'zencode))  'if)
                 (progn
-                  (progn   (press   zendata
-                                    (cadr (top zencode))))
-                  (progn   (press   zencode  
-                                    (top zencode)))
-                  (progn   (exchange    zencode))
-                  (eject  zencode)
-                  (progn   (press   zencode  
-                                    'evif))
-                  (progn   (press   zencode  (eject  zendata)))
+                  (progn   (add_ptr   'zendata
+                                       (cadr (top_ptr 'zencode))))
+                  (progn   (add_ptr   'zencode  
+                                       (top_ptr 'zencode)))
+                  (progn   (exchange    'zencode))
+                  (remove_ptr  'zencode)
+                  (progn   (add_ptr   'zencode  
+                                       'evif))
+                  (progn   (add_ptr   'zencode  (remove_ptr  'zendata)))
                   (wrapeval))
-              (if  (eq (car (top zencode))  'defun)
-                  (wrapdefun  (cdr (eject zencode )))
-                (if  (eq (car (top zencode))  'progn)
+              (if  (eq (car (top_ptr 'zencode))  'defun)
+                  (wrapdefun  (cdr (remove_ptr 'zencode )))
+                (if  (eq (car (top_ptr 'zencode))  'progn)
                     (progn
-                      (progn  (press  zendata  (eject  zencode)))
-                      (progn   (press   zencode  
-                                        'evprogn))
-                      (progn   (press   zencode  
-                                        (cdr  (eject  zendata))))
-                      (progn  (press   zendata
-                                       nil))
+                      (progn  (add_ptr   'zendata  (remove_ptr  'zencode)))
+                      (progn   (add_ptr   'zencode  
+                                           'evprogn))
+                      (progn   (add_ptr   'zencode  
+                                           (cdr  (remove_ptr  'zendata))))
+                      (progn  (add_ptr   'zendata
+                                          nil))
                       (evargs))
                   (progn
-                    (progn   (press   zendata
-                                      (cdr  (top zencode))))
-                    (progn   (press   zencode  
-                                      (car  (top zencode))))
-                    (progn   (exchange    zencode))
-                    (eject  zencode)
-                    (progn   (press   zencode  
-                                      (eject  zendata)))
-                    (progn  (press  zendata
-                                    nil))
+                    (progn   (add_ptr   'zendata
+                                         (cdr  (top_ptr 'zencode))))
+                    (progn   (add_ptr   'zencode  
+                                         (car  (top_ptr 'zencode))))
+                    (progn   (exchange    'zencode))
+                    (remove_ptr  'zencode)
+                    (progn   (add_ptr   'zencode  
+                                         (remove_ptr  'zendata)))
+                    (progn  (add_ptr  'zendata
+                                       nil))
                     (evargs)))))))))))
 
 (defun  generand  (count range)
@@ -281,34 +294,30 @@
 (defun once  ( )
   (progn 
     (display )
-    (setq  env     nil)
-    (setq  zencode  nil)
-    (setq  zendata  nil)
-    (setq midx  nil)
-    (setq  globaldefun  nil)
+    (seq  'env     nil)
+    (seq  'midx  nil)
+    (seq  'globaldefun  nil)
 
     (main   basicdefun )
     (main   basicapply )
 
-    (setq  env     nil)
-    (setq  zencode  nil)
-    (setq  zendata  nil)
-    (setq midx  nil)
-    (setq  globaldefun  nil)
+    (seq  'env     nil)
+    (seq  'midx  nil)
+    (seq  'globaldefun  nil)
     (display)
     (print  'hell)))
 
 (defun  autotest(num)
   (progn
     (once)
-    (print (concat (storage times is ) num))
+    (print (concat (quote times is ) num))
     (autotest (add num 1))))
 
 (defun  main (lst  )
   (if  (eq  lst  nil)
       nil
     (progn
-      (progn   (press  zencode  (car  lst)))
+      (progn   (add_ptr  'zencode  (car  lst)))
       (print   (wrapeval))
       (main (cdr lst)  ))))
 

@@ -53,7 +53,7 @@
 
 (dispatch 
  (init  (aecreate 'select)   
-        (bind  8777  (storage 0.0.0.0))
+        (bind  8777  (quote 0.0.0.0))
         (strip (stdin)))
  0)
 

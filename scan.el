@@ -10,7 +10,7 @@
    ip
    (connect
     (concat ip
-            (storage :) 
+            (quote :) 
             8855))))
 
 (defun  reactor()

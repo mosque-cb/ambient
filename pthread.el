@@ -13,10 +13,10 @@
                    name))
     (routine name)))
 
-(setq this (pcreate 1 'routine 'this))
-(setq that (pcreate 1 'routine 'that))
+(seq 'this (pcreate 1 'routine 'this))
+(seq 'that (pcreate 1 'routine 'that))
 
-(comment (pjoin this))
-(comment (pjoin that))
+(comment (pjoin (geq 'this)))
+(comment (pjoin (geq 'that)))
 
 (pjoin 'nothing)

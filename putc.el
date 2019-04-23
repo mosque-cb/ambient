@@ -13,13 +13,13 @@
 
 (defun strategy(socket filename filesize)
   (if(eq  filesize (minus 0 1))
-      (send socket   (concat (storage HTTP/1.1 404 NOT FOUND) 'LINE 'LINE))
+      (send socket   (concat (quote HTTP/1.1 404 NOT FOUND) 'LINE 'LINE))
     (progn
-      (if (not (eq (find filename (storage .html)) nil))
-          (send socket  (concat (storage HTTP/1.1 200 OK) 'LINE (storage Content-Type: text/html) 'LINE (storage Content-Length: )))
-        (if (not (eq (find filename (storage .png)) nil))
-            (send socket  (concat (storage HTTP/1.1 200 OK) 'LINE (storage Content-Type: image/png) 'LINE (storage Content-Length: )))
-          (send socket  (concat (storage HTTP/1.1 200 OK) 'LINE (storage Content-Type: application/octet-stream) 'LINE (storage Content-Length: )))))
+      (if (not (eq (find filename (quote .html)) nil))
+          (send socket  (concat (quote HTTP/1.1 200 OK) 'LINE (quote Content-Type: text/html) 'LINE (quote Content-Length: )))
+        (if (not (eq (find filename (quote .png)) nil))
+            (send socket  (concat (quote HTTP/1.1 200 OK) 'LINE (quote Content-Type: image/png) 'LINE (quote Content-Length: )))
+          (send socket  (concat (quote HTTP/1.1 200 OK) 'LINE (quote Content-Type: application/octet-stream) 'LINE (quote Content-Length: )))))
       (progn
         (send socket   (concat (itoa filesize) 'LINE 'LINE))
         (com
@@ -48,10 +48,10 @@
 
 (defun  worker()
   (progn
-    (print (storage please input the filename:))
+    (print (quote please input the filename:))
     (handle 
      (strip (stdin))
-     (connect (storage 0.0.0.0:8778)))))
+     (connect (quote 0.0.0.0:8778)))))
 
 (worker)
 (print 'done)

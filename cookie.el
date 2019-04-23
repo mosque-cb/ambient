@@ -5,7 +5,7 @@
 (defun exactcookie (lst)
   (if  (eq  lst  nil)
       nil
-    (if  (not (eq  (find  (car lst) (storage Cookie:)) nil))
+    (if  (not (eq  (find  (car lst) (quote Cookie:)) nil))
         (print (car lst))
       (exactcookie (cdr lst)))))
 
@@ -46,6 +46,6 @@
 
 (dispatch 
  (init  (aecreate 'select)   
-        (bind  8543  (storage 0.0.0.0)))
+        (bind  8543  (quote 0.0.0.0)))
  0)
 

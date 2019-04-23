@@ -1,61 +1,14 @@
-(defun  worker(socket label)
-  (if (eq socket nil)
-      (progn
-      (close socket)            
-      (print (concat label 'SPACE  (storage not ok))))
-    (progn
-      (close socket)    
-      (print (concat label 'SPACE  (storage ok))))))
-
-(defun  blend(ip port)
-  (concat ip (storage :) port))
-
-(defun  fork(label server)
-  (worker (connect label)  (concat label 'SPACE server)))
-
-(defun dispatch(ip)
-  (progn
-    (fork (blend ip 21) 'ftp)
-    (fork (blend ip 22) 'ssh)
-    (fork (blend ip 23) 'telnet)    
-    (fork (blend ip 80) 'http)    
-    (fork (blend ip 8080) 'http)    
-    nop))
-
-(defun  reactor()
-  (if (eofstdin)
-      nil
-    (progn
-      (cons (strip (stdin))
-            (reactor)))))
-
-(comment
- (reactor)
- )
-
-(defun incre(num)
-  (if (eq num 254)
-      nil
-    (cons num
-          (incre (add num 1)))))
-
-(defun link(pivot lst funp)
-  (if (eq lst nil)
-      nil
-    (progn
-      (funcall funp (concat pivot
-                            (storage .)
-                            (car lst)))
-      (link pivot
-            (cdr lst)))))
-
-(defun prolog(a b funp)
-  (if (eq a nil)
-      nil
-    (progn
-      (link (car a) b funp)
-      (prolog (cdr a) b funp))))
-
-(dispatch (concat (storage 172.19.148.22)))
-(dispatch (concat (storage 172.19.148.22)))
-(dispatch (concat (storage 172.19.148.22)))
+(print (concat (lineconcat (list (quote GET /?debug_info=as&debug_id=123456&wwsy=yes&rows=60&start=0&wt=json&)
+                                 (quote &fl=vendor_Name,partnumber,brand_Name,auxdescription,three_groupName,three_groupExtName,author,isbn,unit_searchable_attr,title,two_groupName,threeGroupIds,short_brand_Id HTTP/1.0) 
+                                 (quote Host: 127.0.0.1) 
+                                 (quote U-ApiKey:8b6c51b8a18ccbdae3c7ac74169ec3da) 
+                                 (quote Content-Length: 0)
+                                 (quote User-Agent: http_get) 
+                                 (quote Content-Type: application/json) 
+                                 (quote Accept: */*) 
+                                 (quote Accept-Language: utf8) 
+                                 (quote Accept-Charset: iso-8859-1,*,utf-8) 
+                                 (quote Authorization: Basic YWRtaW46YWRtaW4=) 
+                                 (quote Connection: Keep-Alive)))
+               'LINE
+               'LINE))

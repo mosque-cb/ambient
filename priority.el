@@ -12,8 +12,8 @@
       nil
     (mystrdup
      material
-     (add 1 (find material (storage >job_)))
-     (find material (storage </a></td>)))))
+     (add 1 (find material (quote >job_)))
+     (find material (quote </a></td>)))))
 
 (defun exact_pr(material)
   (if (eq material nil)
@@ -21,11 +21,11 @@
     (mystrdup
      material
      0
-     (find material (storage </td>)))))
+     (find material (quote </td>)))))
 
 (defun worker(id pr)
   (if (not (eq pr 'VERY_HIGH))
-      (system (concat (storage ~/hadoop_yq_guiji/bin/hadoop  job -set-priority )
+      (system (concat (quote ~/hadoop_yq_guiji/bin/hadoop  job -set-priority )
                       id
                       'SPACE
                       'VERY_HIGH))
@@ -33,7 +33,7 @@
 
 (defun decision(jobid priority a b jobname later)
   (progn
-    (if (eq (find jobname (storage rosslyn))
+    (if (eq (find jobname (quote rosslyn))
             nil)
         nil
       (progn
@@ -64,7 +64,7 @@
       nil
     (exact_priority
      (split material
-            (storage <td>)))))
+            (quote <td>)))))
 
 (defun wrapprocess(socket)
   (progn
@@ -74,17 +74,17 @@
 
 (defun  get (socket file)
   (progn
-    (send socket (concat (lineconcat (list (concat (storage GET ) file 'SPACE (storage HTTP/1.0)) 
-                                           (storage Host: api.yeelink.net) 
-                                           (storage U-ApiKey:8b6c51b8a18ccbdae3c7ac74169ec3da) 
-                                           (storage Content-Length: 0)
-                                           (storage User-Agent: http_get) 
-                                           (storage Content-Type: application/json) 
-                                           (storage Accept: */*) 
-                                           (storage Accept-Language: utf8) 
-                                           (storage Accept-Charset: iso-8859-1,*,utf-8) 
-                                           (storage Authorization: Basic YWRtaW46YWRtaW4=) 
-                                           (storage Connection: Keep-Alive)))
+    (send socket (concat (lineconcat (list (concat (quote GET ) file 'SPACE (quote HTTP/1.0)) 
+                                           (quote Host: api.yeelink.net) 
+                                           (quote U-ApiKey:8b6c51b8a18ccbdae3c7ac74169ec3da) 
+                                           (quote Content-Length: 0)
+                                           (quote User-Agent: http_get) 
+                                           (quote Content-Type: application/json) 
+                                           (quote Accept: */*) 
+                                           (quote Accept-Language: utf8) 
+                                           (quote Accept-Charset: iso-8859-1,*,utf-8) 
+                                           (quote Authorization: Basic YWRtaW46YWRtaW4=) 
+                                           (quote Connection: Keep-Alive)))
                          'LINE
                          'LINE))
     socket))
@@ -92,8 +92,8 @@
 (defun loop()
   (progn
     (print (timetostring (unixtime)))
-    (wrapprocess (get (connect (storage  yq01-heng-job.dmop.company.com:8030))
-                      (storage /jobqueue.jsp?queueName=lbs-dingwei)))
+    (wrapprocess (get (connect (quote  yq01-heng-job.dmop.company.com:8030))
+                      (quote /jobqueue.jsp?queueName=lbs-dingwei)))
     (sleep 100)
     (loop)))
 

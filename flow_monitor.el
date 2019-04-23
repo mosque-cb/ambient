@@ -1,11 +1,11 @@
-(setq orcp_bj_nj (list
-                  (storage 10.195.91.53:2100)))
+(seq orcp_bj_nj (list
+                  (quote 10.195.91.53:2100)))
 
-(setq nj_old (list
-              (storage 10.195.253.15:2100)))
+(seq nj_old (list
+              (quote 10.195.253.15:2100)))
 
-(setq nj_new (list
-              (storage 10.195.253.39:2100)))
+(seq nj_new (list
+              (quote 10.195.253.39:2100)))
 
 (defun mystrdup (material begin end)
   (if (or (eq material nil)
@@ -22,7 +22,7 @@
     (mystrdup
      material
      0
-     (find material (storage </span></p>)))))
+     (find material (quote </span></p>)))))
 
 (defun exact_qps (material label)
   (if (eq material nil)
@@ -31,49 +31,49 @@
      (mystrdup material
                (add (strlen label) (find material label) 2)
                (strlen material))
-     (storage </span></p>))))
+     (quote </span></p>))))
 
 (defun prepare_exact_qps (material)
   (if (eq material nil)
       nil
     (exact_qps
-     (mystrdup material (find material (storage qps: )) (strlen material))
-     (storage user_service_get_place_semantic_info_qps))))
+     (mystrdup material (find material (quote qps: )) (strlen material))
+     (quote user_service_get_place_semantic_info_qps))))
 
 (defun process(material)
   (if (eq material nil)
       nil
     (prepare_exact_qps
      (mystrdup material
-               (find material (storage <h4>GetPlaceSemanticInfo ))
+               (find material (quote <h4>GetPlaceSemanticInfo ))
                (strlen material)))))
 
 (defun phone(inf)
-  (system (concat (storage gsmsend  -s emp01.company.com:15002  -s emp02.company.com:15002  13641166638@)
+  (system (concat (quote gsmsend  -s emp01.company.com:15002  -s emp02.company.com:15002  13641166638@)
                   inf)))
 
 (defun log(ip qps type)
   (print 
    (concat 
-    (storage ip is:)
+    (quote ip is:)
     ip
     'SPACE 
-    (storage qps is:)
+    (quote qps is:)
     qps)))
 
 (defun decision(ip qps type)
   (if (eq type 'orcp_bj_nj)
       (if (big qps 1700)
-          (phone (concat (storage big_than_1700_) ip (storage _qps_) qps (storage _type_) type))
+          (phone (concat (quote big_than_1700_) ip (quote _qps_) qps (quote _type_) type))
         (if (big 100 qps)
-            (phone (concat (storage small_than_100_) ip (storage _qps_) qps (storage _type_) type))
+            (phone (concat (quote small_than_100_) ip (quote _qps_) qps (quote _type_) type))
           (log ip qps type)))
     (if (eq type 'nj_old)
         (if (big qps 4500)
-            (phone (concat (storage big_than_4500_) ip (storage _qps_) qps (storage _type_) type))
+            (phone (concat (quote big_than_4500_) ip (quote _qps_) qps (quote _type_) type))
           (log ip qps type))
       (if (big qps 4000)
-          (phone (concat (storage big_than_4000_) ip (storage _qps_) qps (storage _type_) type))
+          (phone (concat (quote big_than_4000_) ip (quote _qps_) qps (quote _type_) type))
         (log ip qps type)))))
 
 (defun  fake (material socket)
@@ -87,17 +87,17 @@
         (print (concat  ip 'SPACE 'escape))
         0)
     (progn
-      (send socket (concat (lineconcat (list (storage GET /status/ HTTP/1.0) 
-                                             (storage Host: 127.0.0.1) 
-                                             (storage U-ApiKey:8b6c51b8a18ccbdae3c7ac74169ec3da) 
-                                             (storage Content-Length: 0)
-                                             (storage User-Agent: http_get) 
-                                             (storage Content-Type: application/json) 
-                                             (storage Accept: */*) 
-                                             (storage Accept-Language: utf8) 
-                                             (storage Accept-Charset: iso-8859-1,*,utf-8) 
-                                             (storage Authorization: Basic YWRtaW46YWRtaW4=) 
-                                             (storage Connection: Keep-Alive)))
+      (send socket (concat (lineconcat (list (quote GET /status/ HTTP/1.0) 
+                                             (quote Host: 127.0.0.1) 
+                                             (quote U-ApiKey:8b6c51b8a18ccbdae3c7ac74169ec3da) 
+                                             (quote Content-Length: 0)
+                                             (quote User-Agent: http_get) 
+                                             (quote Content-Type: application/json) 
+                                             (quote Accept: */*) 
+                                             (quote Accept-Language: utf8) 
+                                             (quote Accept-Charset: iso-8859-1,*,utf-8) 
+                                             (quote Authorization: Basic YWRtaW46YWRtaW4=) 
+                                             (quote Connection: Keep-Alive)))
                            'LINE
                            'LINE))
       (fake

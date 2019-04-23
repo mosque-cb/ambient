@@ -8,16 +8,16 @@
            (eq (car (cdr material)) 0)
            (eq (car (cdr (cdr material))) 0)
            (eq (car (cdr (cdr (cdr material)))) 8))
-      (print (concat (storage job create, handle is:) 
+      (print (concat (quote job create, handle is:) 
                      (for_bytes (tail material 8))))
     (if (and (eq (car material) 0)
              (eq (car (cdr material)) 0)
              (eq (car (cdr (cdr material))) 0)
              (eq (car (cdr (cdr (cdr material)))) 13))
         (progn
-          (print (concat (storage job complete, handle is:) 
+          (print (concat (quote job complete, handle is:) 
                          (for_bytes (tail material 8))))
-          (print (concat (storage job complete, result is:) 
+          (print (concat (quote job complete, result is:) 
                          (for_bytes (skipzero (tail material 8))))))
       (print 'unknown_res))))
 
@@ -40,7 +40,7 @@
     (send  socket material)))
 
 (defun  proxy()
-  (connect (storage 0.0.0.0:4780)))
+  (connect (quote 0.0.0.0:4780)))
 
 (defun  noop(socket)
   (progn
@@ -49,10 +49,10 @@
 
 (defun  dispatch(socket req)
   (progn
-    (print (storage input your func name))
+    (print (quote input your func name))
     (submit socket (concat (strip (stdin))
                            (for_bytes (cons 0 (cons 0 nil)))
-                           (storage from gearmanc.el)))
+                           (quote from gearmanc.el)))
 
     (noop socket)))
 

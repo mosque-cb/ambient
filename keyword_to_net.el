@@ -9,10 +9,10 @@
               (jgetobject             
                (jgetobject             
                 (jgetobject json 'as)
-                (storage as_response))
-               (storage as_result))
-              (storage results))
-             (storage num_found))))
+                (quote as_response))
+               (quote as_result))
+              (quote results))
+             (quote num_found))))
     json))
 
 (defun handlematerial(material)
@@ -21,17 +21,17 @@
     (print material)))
 
 (defun  get (socket)
-  (send socket (concat (lineconcat (list (storage GET /?debug_info=as&debug_id=123456&wwsy=yes&rows=60&start=0&wt=json&q=你好吗努比亚α我很好&fl=vendor_Name,partnumber,brand_Name,auxdescription,three_groupName,three_groupExtName,author,isbn,unit_searchable_attr,title,two_groupName,threeGroupIds,short_brand_Id HTTP/1.0) 
-                                         (storage Host: 127.0.0.1) 
-                                         (storage U-ApiKey:8b6c51b8a18ccbdae3c7ac74169ec3da) 
-                                         (storage Content-Length: 0)
-                                         (storage User-Agent: http_get) 
-                                         (storage Content-Type: application/json) 
-                                         (storage Accept: */*) 
-                                         (storage Accept-Language: utf8) 
-                                         (storage Accept-Charset: iso-8859-1,*,utf-8) 
-                                         (storage Authorization: Basic YWRtaW46YWRtaW4=) 
-                                         (storage Connection: Keep-Alive)))
+  (send socket (concat (lineconcat (list (quote GET /?debug_info=as&debug_id=123456&wwsy=yes&rows=60&start=0&wt=json&q=你好吗努比亚α我很好&fl=vendor_Name,partnumber,brand_Name,auxdescription,three_groupName,three_groupExtName,author,isbn,unit_searchable_attr,title,two_groupName,threeGroupIds,short_brand_Id HTTP/1.0) 
+                                         (quote Host: 127.0.0.1) 
+                                         (quote U-ApiKey:8b6c51b8a18ccbdae3c7ac74169ec3da) 
+                                         (quote Content-Length: 0)
+                                         (quote User-Agent: http_get) 
+                                         (quote Content-Type: application/json) 
+                                         (quote Accept: */*) 
+                                         (quote Accept-Language: utf8) 
+                                         (quote Accept-Charset: iso-8859-1,*,utf-8) 
+                                         (quote Authorization: Basic YWRtaW46YWRtaW4=) 
+                                         (quote Connection: Keep-Alive)))
                        'LINE
                        'LINE)))
 
@@ -50,7 +50,7 @@
     (routine (pget))))
 
 (defun  network()
-  (get (connect (storage 172.19.59.15:8888))))
+  (get (connect (quote 172.19.59.15:8888))))
 
 (defun dispatch()
   (progn

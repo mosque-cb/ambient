@@ -13,7 +13,7 @@
 
 (defun  wrap_defun (lst )
   (progn
-    (setq  global_defun  (cons  lst global_defun))
+    (seq  global_defun  (cons  lst global_defun))
     (print  'wrap_defun)))
 
 (defun  funp(name global)
@@ -194,17 +194,17 @@
 (defun once  ( )
   (progn 
     (display )
-    (setq  global_defun  nil)
+    (seq  global_defun  nil)
     (main basic_defun )
     (main basic_apply )
-    (setq  global_defun  nil)
+    (seq  global_defun  nil)
     (display)
     (print  'hell)))
 
 (defun  autotest(num)
   (progn
     (once)
-    (print (concat (storage times is ) num))
+    (print (concat (quote times is ) num))
     (autotest (add num 1))))
 
 (defun  main (lst  )

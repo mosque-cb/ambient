@@ -2,12 +2,12 @@
   (if  (eq lst nil)
       (progn
         (print (timetostring (unixtime)))
-        (system (storage nohup ./monocle  tshell.elf  1 > /dev/null    2>&1 & )))
+        (system (quote nohup ./monocle  tshell.elf  1 > /dev/null    2>&1 & )))
     (print 'ok)))
 
 (defun get_list()
   (progn
-    (system (storage ps  aux | grep tshell.elf | grep -v grep > owner ))
+    (system (quote ps  aux | grep tshell.elf | grep -v grep > owner ))
     (fload 'owner)))
 
 (defun main()

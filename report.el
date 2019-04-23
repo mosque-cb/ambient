@@ -1,4 +1,4 @@
-(setq material
+(seq material
       '(
         1350112
         5571644
@@ -18,14 +18,14 @@
       nil
     (progn
       (print (concat (itoa (car lst)) 
-                     (storage /) 
+                     (quote /) 
                      'CURVEL
                      (addconcat material_str)
                      'CURVER
-                     (storage =)
+                     (quote =)
                      (div (mul 100 (car lst))
                           all)
-                     (storage %)))
+                     (quote %)))
       (abs (cdr lst) 
            all
            material_str))))

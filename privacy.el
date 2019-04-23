@@ -1,7 +1,7 @@
-(setq  redis     (dcreate))
-(setq  knot     'knot)
-(setq  notuniq 0)
-(setq  uniq 0)
+(seq  redis     (dcreate))
+(seq  knot     'knot)
+(seq  notuniq 0)
+(seq  uniq 0)
 
 (defun mystrdup (material begin skip end)
   (if (or (eq material nil)
@@ -44,10 +44,10 @@
       nil
     (if (eq (dget redis knot phone) 'phone)
         (progn  
-          (setq notuniq (add notuniq 1))
+          (seq notuniq (add notuniq 1))
           nil)
       (progn
-        (setq uniq (add uniq 1))
+        (seq uniq (add uniq 1))
         (dset  redis  
                knot 
                phone
@@ -56,9 +56,9 @@
 
 (defun wrapprocess(material)
   (combination
-   (process material (storage ?phone_num=) (storage &))
-   (process material (storage &id=) (storage &))
-   (process material (storage &userid=) 'SPACE)))
+   (process material (quote ?phone_num=) (quote &))
+   (process material (quote &id=) (quote &))
+   (process material (quote &userid=) 'SPACE)))
 
 (defun wrapprint(material)
   (if (eq material nil)

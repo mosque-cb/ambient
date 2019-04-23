@@ -13,23 +13,22 @@
 
 (defun recycle(lst)
   (if (eq  lst nil)
-        (setq unfinish nil)
+      nil
     (progn
       (pjoin (car lst))
       (recycle (cdr lst)))))
 
-(defun dispatch(num times)
+(defun dispatch(num contain)
   (if (eq num 0)
       (progn
-        (sleep 1)
-        (recycle unfinish)
-        (print (concat (storage times is ) times))
-        (dispatch all (add times 1)))
+        (recycle (geq 'unfinish))
+        (seq 'unfinish nil)
+        (print (concat (quote contain is ) contain))
+        (dispatch contain contain))
     (progn
-      (setq unfinish (cons  (print (pcreate  1 'routine)) unfinish))
+      (seq 'unfinish (cons  (print (pcreate  1 'routine)) (geq 'unfinish)))
       (dispatch (minus num 1)
-                times))))
+                contain))))
 
-(setq unfinish nil)
-(setq all  10)
-(pjoin (pcreate 100 'dispatch  all 0))
+(seq 'unfinish nil)
+(pjoin (pcreate 100 'dispatch 10 10))

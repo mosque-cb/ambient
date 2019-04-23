@@ -12,6 +12,6 @@
     (print  3)    
     (execute  socket (spaceconcat '(ls)))
     (print  4)        
-    (execute  socket (print (spaceconcat (list (storage exit) 'LINE))))))
+    (execute  socket (print (spaceconcat (list (quote exit) 'LINE))))))
 
-(main (connect  (storage 120.27.95.65:23)))
+(main (connect  (quote 120.27.95.65:23)))

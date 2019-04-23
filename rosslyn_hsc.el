@@ -1,6 +1,6 @@
 (defun routine(pid)
   (progn
-    (setq unfinish  (cons pid unfinish))
+    (seq 'unfinish  (cons pid (geq 'unfinish)))
     (print 'routine)
     (printchar pid)))
 
@@ -13,23 +13,23 @@
 
 (defun  get (socket file)
   (progn
-    (send socket (concat (lineconcat (list (concat (storage GET ) file 'SPACE (storage HTTP/1.0)) 
-                                           (storage Host: api.yeelink.net) 
-                                           (storage U-ApiKey:8b6c51b8a18ccbdae3c7ac74169ec3da) 
-                                           (storage Content-Length: 0)
-                                           (storage User-Agent: http_get) 
-                                           (storage Content-Type: application/json) 
-                                           (storage Accept: */*) 
-                                           (storage Accept-Language: utf8) 
-                                           (storage Accept-Charset: iso-8859-1,*,utf-8) 
-                                           (storage Authorization: Basic YWRtaW46YWRtaW4=) 
-                                           (storage Connection: Keep-Alive)))
+    (send socket (concat (lineconcat (list (concat (quote GET ) file 'SPACE (quote HTTP/1.0)) 
+                                           (quote Host: api.yeelink.net) 
+                                           (quote U-ApiKey:8b6c51b8a18ccbdae3c7ac74169ec3da) 
+                                           (quote Content-Length: 0)
+                                           (quote User-Agent: http_get) 
+                                           (quote Content-Type: application/json) 
+                                           (quote Accept: */*) 
+                                           (quote Accept-Language: utf8) 
+                                           (quote Accept-Charset: iso-8859-1,*,utf-8) 
+                                           (quote Authorization: Basic YWRtaW46YWRtaW4=) 
+                                           (quote Connection: Keep-Alive)))
                          'LINE
                          'LINE))
     socket))
 
 (defun  network()
-  (get (connect (storage localhost:8528))
+  (get (connect (quote localhost:8528))
        (concat 'rosslyn_hsc (unixtime))))
 
 (defun recycle(lst)
@@ -43,10 +43,10 @@
   (progn
     (print  'recycle)
     (printchar  'memory)
-    (printchar unfinish)
-    (recycle unfinish)
-    (setq unfinish nil)
-    (dispatch pool)))
+    (printchar (geq 'unfinish))
+    (recycle (geq 'unfinish))
+    (seq 'unfinish nil)
+    (dispatch (geq 'pool))))
 
 (defun dispatch(n)
   (if  (eq  n  0)
@@ -56,6 +56,6 @@
       (sleep 1)
       (dispatch (minus n 1)))))
 
-(setq unfinish nil)
-(setq pool 10)
-(pjoin (pcreate 100 'dispatch pool))
+(seq 'unfinish nil)
+(seq 'pool 10)
+(pjoin (pcreate 100 'dispatch (geq 'pool)))

@@ -7,11 +7,11 @@
 
 (defun strategy_worker(socket header material)
   (progn
-    (send socket  (concat (storage HTTP/1.1 200 OK) 
+    (send socket  (concat (quote HTTP/1.1 200 OK) 
                           'LINE 
                           header
                           'LINE 
-                          (concat (storage Content-Length: ) (strlen material))
+                          (concat (quote Content-Length: ) (strlen material))
                           'LINE 
                           'LINE))
     (send socket (print material))))
@@ -20,9 +20,9 @@
   (if (eq status 'page)
       (progn
         (strategy_worker socket
-                         (storage Content-Type: text/html) 
+                         (quote Content-Type: text/html) 
                          (concat
-                          (storage  
+                          (quote  
                            <!DOCTYPE html>
                            <html>
                            <head>
@@ -78,10 +78,10 @@
                  (find material 'SPACE))))
 
 (defun exact_status(material)
-  (if (eq (find material (storage ?)) nil)
+  (if (eq (find material (quote ?)) nil)
       'page
     (exactcall (strdup material
-                       (find material (storage ?))
+                       (find material (quote ?))
                        (strlen material)))))
 
 (defun wrap_strategy(socket lst)
@@ -92,8 +92,8 @@
                   (print (exact_status (car lst)))
                   (randomname))
       (strategy_worker socket
-                       (storage Content-Type: text/html) 
-                       (storage  HTTP/1.0 501 Not Implemented)))))
+                       (quote Content-Type: text/html) 
+                       (quote  HTTP/1.0 501 Not Implemented)))))
 
 (defun handle(en socket first)
   (aeadd  
@@ -125,6 +125,6 @@
 
 (dispatch 
  (init  (aecreate 'select)   
-        (bind  8664  (storage 0.0.0.0)))
+        (bind  8664  (quote 0.0.0.0)))
  0)
 

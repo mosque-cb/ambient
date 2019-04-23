@@ -2,13 +2,13 @@
   (if (eq socket nil)
       (progn
         (close socket)          
-        (print (concat label 'SPACE  (storage not ok))))
+        (print (concat label 'SPACE  (quote not ok))))
     (progn
       (close socket)    
-      (print (concat label 'SPACE  (storage ok))))))
+      (print (concat label 'SPACE  (quote ok))))))
 
 (defun  blend(ip port)
-  (concat ip (storage :) port))
+  (concat ip (quote :) port))
 
 (defun  fork(label server)
   (worker (connect label)  (concat label 'SPACE server)))
@@ -44,7 +44,7 @@
       nil
     (progn
       (funcall funp (concat pivot
-                            (storage .)
+                            (quote .)
                             (car lst)))
       (link pivot
             (cdr lst)))))
@@ -58,5 +58,5 @@
 
 (prolog (incre 1)
         (incre 1)
-        (lambda (appdix) (dispatch (concat (storage 172.19.)
+        (lambda (appdix) (dispatch (concat (quote 172.19.)
                                            appdix))))

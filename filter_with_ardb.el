@@ -1,5 +1,5 @@
-(setq last 'nothing)
-(setq num 0)
+(seq last 'nothing)
+(seq num 0)
 
 (defun format_item(lst)
   (if  (eq lst nil)
@@ -33,7 +33,7 @@
 (defun execute(source socket cmd)
   (progn
     (send socket  (format_protocol cmd))
-    (setq num (add num 1))
+    (seq num (add num 1))
     (worker
      source
      (linesplit (recv socket)))
@@ -47,7 +47,7 @@
       nil
     (progn
       (execute  source socket (list 'get 
-                                    (concat (storage st:) key)))
+                                    (concat (quote st:) key)))
       nop)))
 
 (defun  terminal (socket lst source)
@@ -57,7 +57,7 @@
     (if (eq last (car lst))
         nil
       (progn
-        (setq last (car lst))
+        (seq last (car lst))
         (pcreate 1
                  'wrapsend socket
                  (car lst)
@@ -80,4 +80,4 @@
       (reactor))))
 
 (pjoin (pcreate 1 'reactor
-                (connect (storage  127.0.0.1:16379))))
+                (connect (quote  127.0.0.1:16379))))

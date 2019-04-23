@@ -16,7 +16,7 @@
        (funcall (print (funcall f  (funcall h h)))
 		x)))))
 
-(setq  factorial  (y  (lambda  ( mirror) 
+(seq  factorial  (y  (lambda  ( mirror) 
 			( lambda (x) 
 			  (if  (eq (car x) 0) 1 
 			    (mul  (car x ) 

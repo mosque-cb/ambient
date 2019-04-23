@@ -14,4 +14,4 @@
     (execute  socket (concat 'QUIT  'ENTER))))
 
 
-(main (connect  (storage localhost:21)))
+(main (connect  (quote localhost:21)))

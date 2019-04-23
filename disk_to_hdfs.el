@@ -7,12 +7,12 @@
       nil
     (progn
       (print (concat 'file 'SPACE  no))
-      (system (print (concat (storage /home/map/tools/hadoop_lbs-traj/bin/hadoop  fs  -mkdir  /app/lbs/traj/search/seman_output_ios/)
+      (system (print (concat (quote /home/map/tools/hadoop_lbs-traj/bin/hadoop  fs  -mkdir  /app/lbs/traj/search/seman_output_ios/)
                              (wrapno no))))
-      (system (print (concat (storage /home/map/tools/hadoop_lbs-traj/bin/hadoop  fs  -put )
+      (system (print (concat (quote /home/map/tools/hadoop_lbs-traj/bin/hadoop  fs  -put )
                              (wrapno no)
-                             (storage /ios* )
-                             (storage  /app/lbs/traj/search/seman_output_ios/)
+                             (quote /ios* )
+                             (quote  /app/lbs/traj/search/seman_output_ios/)
                              (wrapno no))))
       (print (concat 'file 'SPACE  no 'SPACE 'done))
       (sleep 100)

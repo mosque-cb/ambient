@@ -1,10 +1,10 @@
-(setq  concern_schema  (list 'gender 'age 'app_interest 'long_term_interest 'life_stage
+(seq  concern_schema  (list 'gender 'age 'app_interest 'long_term_interest 'life_stage
                              'status 'trade 'constellation 'educational_level 'job 'consumption 'device_info 'app_list))
 
 
-(setq  product_schema  (list 'udwid 'otherid 'source))
-(setq  profile_schema  (cons 'udwid (cons 'otherid concern_schema)))
-(setq  map_schema  (cons 'udwid (cons 'logtype (cons 'source  concern_schema))))
+(seq  product_schema  (list 'udwid 'otherid 'source))
+(seq  profile_schema  (cons 'udwid (cons 'otherid concern_schema)))
+(seq  map_schema  (cons 'udwid (cons 'logtype (cons 'source  concern_schema))))
 
 (defun  map (stream f)
   (iter (stream f)
@@ -14,7 +14,7 @@
           (self stream f))))
 
 (defun countsameid (first now)
-  (if  (eq  (jgetstring (jgetobject first 'logtype)) (storage id_source))
+  (if  (eq  (jgetstring (jgetobject first 'logtype)) (quote id_source))
       (jupdateobject  now  'source (jcreatestring (jgetstring (jgetobject first 'source))))
     (jupdateobject  first 'source (jcreatestring (jgetstring (jgetobject now 'source))))))
 

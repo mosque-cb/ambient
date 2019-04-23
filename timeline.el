@@ -5,7 +5,7 @@
                          end))
             60)
       (progn
-        (print 'eject)
+        (print 'remove_ptr)
         (lpop dict 
               queue))
     (lrange dict          

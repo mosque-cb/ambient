@@ -4,7 +4,7 @@
 (defun cddr (lst)
   (cdr (cdr lst)))
 
-(setq  listredis (dcreate ))
+(seq  listredis (dcreate ))
 
 (defun dispatch (event times)
   (dispatch  (aepoll  event (list times))
@@ -68,5 +68,5 @@
 
 (dispatch 
  (init  (aecreate 'select)   
-        (bind  8778  (storage 0.0.0.0)))
+        (bind  8778  (quote 0.0.0.0)))
  0)

@@ -1,4 +1,4 @@
-(setq path nil)
+(seq path nil)
 
 (defun cddr(a)
 (cdr (cdr a)))
@@ -13,7 +13,7 @@
           1)
       (progn
         (print path)
-        (setq path  (caddr item))
+        (seq path  (caddr item))
         (mktime (spaceconcat (list  (car item)  (car (cdr item))))))
     timestamp))
 
@@ -38,19 +38,19 @@
 
 (defun get_list()
   (progn
-    (system (print (concat (storage hadoop fs  -ls /app/dpf/quota_analyse/version_2014 )
-                           (storage 1 >result ))))
-    (system (print (storage cat result | grep /app/dpf/quota_analyse/version_2014/mid_result > owner )))
+    (system (print (concat (quote hadoop fs  -ls /app/dpf/quota_analyse/version_2014 )
+                           (quote 1 >result ))))
+    (system (print (quote cat result | grep /app/dpf/quota_analyse/version_2014/mid_result > owner )))
     (fload 'owner)))
 
 (defun update_quota()
   (progn
-    (system (print  (storage rm vertex_7)))
-    (system (print (concat (storage hadoop fs  -getmerge )
+    (system (print  (quote rm vertex_7)))
+    (system (print (concat (quote hadoop fs  -getmerge )
                            path
-                           (storage /vertex_7 . ))))
-    (system (print  (storage cat vertex_7  | grep /app/dt/ups |  python space_tree.py )))
-    (system (print  (storage rm vertex_78 )))))
+                           (quote /vertex_7 . ))))
+    (system (print  (quote cat vertex_7  | grep /app/dt/ups |  python space_tree.py )))
+    (system (print  (quote rm vertex_78 )))))
 
 (defun main()
   (progn

@@ -10,4 +10,4 @@
     (execute  socket '(lpop  aaaaa LINE))))
 
 
-(main (connect  (storage 127.0.0.1:6379)))
+(main (connect  (quote 127.0.0.1:6379)))

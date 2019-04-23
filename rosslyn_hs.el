@@ -4,7 +4,7 @@
     (close socket)))
 
 (defun  wraphandle (socket)
-  (setq unfinish (cons (pcreate  1 'handle socket)  unfinish)))
+  (seq 'unfinish (cons (pcreate  1 'handle socket) (geq 'unfinish))))
 
 (defun recycle(lst)
   (if (eq  lst  nil)
@@ -17,10 +17,10 @@
   (progn
     (print  'recycle)
     (printchar  'memory)
-    (print unfinish)
-    (recycle unfinish)
-    (setq unfinish nil)
-    (dispatch socket pool)))
+    (print (geq 'unfinish))
+    (recycle (geq 'unfinish))
+    (seq 'unfinish nil)
+    (dispatch socket (geq 'pool))))
 
 (defun dispatch (socket num)
   (if (eq num 0)
@@ -30,9 +30,9 @@
       (sleep 1)
       (dispatch  socket (minus num 1)))))
 
-(setq unfinish nil)
-(setq pool 20)
-(pjoin (pcreate 100 'dispatch  (bind  8528 (storage 0.0.0.0)) pool))
+(seq 'unfinish nil)
+(seq 'pool 20)
+(pjoin (pcreate 100 'dispatch  (bind  8528 (quote 0.0.0.0)) (geq 'pool)))
 
 
 

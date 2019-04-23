@@ -1,6 +1,6 @@
 (defun main(socket addr)
   (if (eq socket nil)
-      (system (print (concat (storage gsmsend  -s emp01.company.com:15002  -s emp02.company.com:15002  13641166638@)
+      (system (print (concat (quote gsmsend  -s emp01.company.com:15002  -s emp02.company.com:15002  13641166638@)
                       addr)))
     (progn
       (close socket) 
@@ -22,9 +22,9 @@
     (if (eq (rightstrip (car material))
             'server)
         (concat (leftstrip (car (cdr material)))
-                (storage :)
+                (quote :)
                 (leftstrip (car (cdr
-                               (split (strip (stdin)) (storage :))))))
+                               (split (strip (stdin)) (quote :))))))
       nil)))
 
 (defun  wrapcons(a b)
@@ -37,7 +37,7 @@
       nil
     (progn
       (wrapcons 
-       (handler (split (strip (stdin)) (storage :)))
+       (handler (split (strip (stdin)) (quote :)))
        (exact_iplist)))))
 
 (defun loop(alist blist)

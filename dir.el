@@ -5,16 +5,16 @@
 
 (defun get_list(root)
   (progn
-    (system (concat (storage  ls )
+    (system (concat (quote  ls )
                     root
                     'SPACE
-                    (storage  >owner)))
+                    (quote  >owner)))
     (fload 'owner)))
 
 (defun terminal(path)
-  (system (concat (storage python dump.py  )  
+  (system (concat (quote python dump.py  )  
                   path 
-                  (storage >> building ))))
+                  (quote >> building ))))
 
 (defun scanfile(root a)
   (if (eq a nil)
@@ -28,7 +28,7 @@
       nil
     (progn
       (scanfile
-       (concat  root (car a) (storage /))
+       (concat  root (car a) (quote /))
        (entersplit (get_list (concat  root (car a)))))
       (scandir root (cdr a)))))
 

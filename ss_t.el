@@ -1,6 +1,6 @@
 (defun structip(ip port)
   (print  (concat ip
-                  (storage :)
+                  (quote :)
                   (itoa (add (mul (car port)
                                   256)
                              (car (cdr port)))))))
@@ -118,7 +118,7 @@
     (sleep 1)
     (dispatch  socket)))
 
-(pjoin (pcreate 500 'dispatch  (bind  8565 (storage 0.0.0.0))))
+(pjoin (pcreate 500 'dispatch  (bind  8565 (quote 0.0.0.0))))
 
 
 

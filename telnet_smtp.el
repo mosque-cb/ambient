@@ -7,9 +7,9 @@
   (progn
     (execute  socket (spaceconcat '(HELO hi LINE)))
     (execute  socket (spaceconcat '(auth login LINE)))
-    (execute  socket (print (concat (storage cm9zc2x5bl9kenBAMTI2LmNvbQo=) 'LINE)))
-    (execute  socket (print (concat (storage Y3NkbmNzZG4xMzc3NzMK) 'LINE)))
-    (execute  socket (print (spaceconcat (list (storage list) 'LINE))))
-    (execute  socket (print (spaceconcat (list (storage quit) 'LINE))))))
+    (execute  socket (print (concat (quote cm9zc2x5bl9kenBAMTI2LmNvbQo=) 'LINE)))
+    (execute  socket (print (concat (quote Y3NkbmNzZG4xMzc3NzMK) 'LINE)))
+    (execute  socket (print (spaceconcat (list (quote list) 'LINE))))
+    (execute  socket (print (spaceconcat (list (quote quit) 'LINE))))))
 
-(smtpmain (connect  (storage smtp.126.com:25)))
+(smtpmain (connect  (quote smtp.126.com:25)))

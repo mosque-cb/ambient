@@ -2,10 +2,10 @@
   (if  (eq lst  nil)
       nil
     (if  (not (eq  (find (car lst) 
-                         (storage Content-Length:)) 
+                         (quote Content-Length:)) 
                    nil))
         (print (atoi  (strdup (car lst)
-                              (add 2 (find (car lst) (storage : )))
+                              (add 2 (find (car lst) (quote : )))
                               (strlen (car lst)))))
       (exactsize (cdr lst)))))
 
@@ -55,29 +55,29 @@
 
 (defun  get (socket file)
   (progn
-    (send socket (concat (lineconcat (list (concat (storage GET ) file 'SPACE (storage HTTP/1.0)) 
-                                           (storage Host: api.yeelink.net) 
-                                           (storage U-ApiKey:8b6c51b8a18ccbdae3c7ac74169ec3da) 
-                                           (storage Content-Length: 0)
-                                           (storage User-Agent: http_get) 
-                                           (storage Content-Type: application/json) 
-                                           (storage Accept: */*) 
-                                           (storage Accept-Language: utf8) 
-                                           (storage Accept-Charset: iso-8859-1,*,utf-8) 
-                                           (storage Authorization: Basic YWRtaW46YWRtaW4=) 
-                                           (storage Connection: Keep-Alive)))
+    (send socket (concat (lineconcat (list (concat (quote GET ) file 'SPACE (quote HTTP/1.0)) 
+                                           (quote Host: api.yeelink.net) 
+                                           (quote U-ApiKey:8b6c51b8a18ccbdae3c7ac74169ec3da) 
+                                           (quote Content-Length: 0)
+                                           (quote User-Agent: http_get) 
+                                           (quote Content-Type: application/json) 
+                                           (quote Accept: */*) 
+                                           (quote Accept-Language: utf8) 
+                                           (quote Accept-Charset: iso-8859-1,*,utf-8) 
+                                           (quote Authorization: Basic YWRtaW46YWRtaW4=) 
+                                           (quote Connection: Keep-Alive)))
                          'LINE
                          'LINE))
     socket))
 
 (defun dispatch (filename)
   (wrap_strategy 
-   (get (connect (storage 127.0.0.1:8634))
-        (concat (storage ./) filename))
+   (get (connect (quote 127.0.0.1:8634))
+        (concat (quote ./) filename))
    (fopen filename 'wb)))
 
 (dispatch  (progn
-             (print (storage input the filename:))
+             (print (quote input the filename:))
              (strip (stdin))))
 
 

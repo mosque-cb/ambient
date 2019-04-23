@@ -1,5 +1,5 @@
-(setq  map_schema  (list 'id 'url))
-(setq  reduce_schema  (list 'hash 'id 'url))
+(seq  map_schema  (list 'id 'url))
+(seq  reduce_schema  (list 'hash 'id 'url))
 
 (defun  select (stream f)
   (iter (stream f)

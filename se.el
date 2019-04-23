@@ -1,31 +1,34 @@
-(defun calc(avalue temp height mid low lr)
-  (if (eq avalue temp)
+(defun calc(avalue tmp height mid low lr c)
+  (if (eq avalue tmp)
       (progn
-        (print (concat (storage find:)  temp))
+        (add_long c tmp)
         mid)
     (if (eq low height)
         mid
-      (if (big temp avalue)
+      (if (big tmp avalue)
           (wraplr avalue
                   b
                   (minus mid 1)
                   low
-                  lr)
+                  lr
+                  c)
         (wraplr avalue
                 b
                 height
                 (add mid 1)
-                lr)))))
+                lr
+                c)))))
 
-(defun landr(avalue b height low mid lr)
+(defun landr(avalue b height low mid lr c)
   (calc avalue
         (idx_longs b mid)
         height
         mid
         low
-        lr))
+        lr
+        c))
 
-(defun wraplr(avalue b height low lr)
+(defun wraplr(avalue b height low lr c)
   (if (big low height)
       lr
     (landr avalue
@@ -34,12 +37,13 @@
            low
            (div (add height low)
                 2)
-           lr)))
+           lr
+           c)))
 
-(defun wrapse(i a alen b br bl)
+(defun wrapse(i a alen b br bl c)
   (if (eq alen 
           (add 1 (mul 2 i)))
-      (print (storage i map))
+      (print (quote i map))
     (se
      (add i 1)
      a
@@ -49,15 +53,16 @@
              b
              br
              bl
-             br)
+             br
+             c)
      bl)))
 
-(defun se(i a alen b br bl)
+(defun se(i a alen b br bl c)
   (if (big i (div alen 2))
-      (print (storage i big))
+      (print (quote i big))
     (if (eq alen 
             (mul 2 i))
-        (print (storage i equ))
+        (print (quote i equ))
       (wrapse
        i
        a
@@ -68,45 +73,117 @@
                b
                br
                bl
-               bl)))))
+               bl
+               c)
+       c))))
 
-(defun intersection(a b)
+(defun intersection(a b c)
   (se
    0
    a
    (size_longs a)
    b
    (minus (size_longs b) 1)
-   0))
+   0
+   c))
 
-(defun dispatch(a b)
-  (intersection
-   (qsort (for_longs a))
-   (qsort (for_longs b))))
+(defun dispatch(a b ab)
+  (if (not (eq (geq ab) nil))
+      ab
+    (if (or (eq a nil)
+            (eq  b nil))
+        nil
+      (progn
+        (intersection
+         (qsort a)
+         (qsort b)
+         ab)
+        (print ab)))))
 
-(defun  gendata(n)
-  (if (eq n 0)
+(defun  segment(lst)
+  (if (eq lst nil)
       nil
-    (cons  (random 1000)
-           (gendata (minus n 1)))))
+    (if (big (car lst)
+             0)
+        (cons (ctoa (car lst))
+              (segment (cdr lst)))
+      (progn
+        (cons (concat (ctoa (car lst))
+                      (ctoa (car (cdr lst))))
+              (segment (cdr (cdr lst))))))))
 
-(defun  autotest(n)
+(defun  ivt(key docid)
+  (add_long key docid))
+
+(defun  handivt(lst docid)
+  (if (eq lst nil)
+      nil
+    (progn
+      (ivt (car lst) docid)
+      (handivt (cdr lst) docid))))
+
+(defun  wrapstdin(line docid)
   (progn
-    (print n)
-    (display)
-    (print (dispatch (print (gendata 50))
-                     (print (gendata 64))))
-    (display)
-    (autotest (add n 1))))
+    (if (eq (mod docid 10000)
+            0)
+        (print docid)
+      nil)
+    (add_ptr 'forward line)
+    (handivt (segment (dump_bytes line)) docid)
+    (reactor (add docid 1))))
 
-(autotest 0)
+(defun  reactor(docid file)
+  (if (feof file)
+      nil
+    (wrapstdin (strip (fgets file)) docid)))
 
-(comment
-(print (dispatch (print (list  40 30 50))
-                 (print (list 30 40 64 100 200  20  50))))
- )
+(defun  wist(a lst)
+  (if (eq a nil)
+      nil
+    (if (eq lst nil)
+        a
+      (progn
+        (wist (dispatch (geq a)
+                        (geq (car lst))
+                        (randomname))
+              (cdr lst))))))
 
+(defun  lookup(lst)
+  (if (eq lst nil)
+      nil
+    (wist (car lst)
+          (cdr lst))))
 
+(defun  helper(col a b)
+  (if (big a b)
+      (progn
+        (print (idx_ptrs (geq 'forward)
+                         (idx_longs col b)))
+        (helper col a (add b 1))
+        )
+    nil))
 
+(defun  lookforward(col query)
+  (progn
+    (helper (geq col)  (size_longs (geq col)) 0)
+    (print (tabconcat (list query
+                            (size_longs (geq col)))))))
 
+(defun  blend(query)
+  (lookforward
+   (lookup (segment (dump_bytes query)))
+   query))
 
+(defun  ss()
+  (if (eofstdin)
+      nil  
+    (progn
+      (print (quote new_query:))
+      (blend (strip (stdin))) 
+      (print 'LINE)
+      (ss))))
+
+(print (quote loading)) 
+(reactor 0 (fopen 'gbk 'r))
+(print (quote loading ok)) 
+(ss)

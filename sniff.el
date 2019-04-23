@@ -26,7 +26,7 @@
 (prolog (print (incre 9 0))
         (lambda (appdix)
           (system (print (concat 
-                          (storage nohup hadoop fs  -cat  /user/company/data/productB/ltr/ltr_datab/)
+                          (quote nohup hadoop fs  -cat  /user/company/data/productB/ltr/ltr_datab/)
                           appdix
-                          (storage /* | grep 摄像机高清家用  >) 
+                          (quote /* | grep 摄像机高清家用  >) 
                           appdix)))))

@@ -1,7 +1,7 @@
-(setq maclisper (dcreate))
+(seq maclisper (dcreate))
 
-(setq  redis     (dcreate))
-(setq  queue     'queue)
+(seq  redis     (dcreate))
+(seq  queue     'queue)
 
 (defun caar (lst)
   (car (car lst)))
@@ -97,6 +97,6 @@
 
 (dispatch 
  (init  (aecreate 'select)   
-        (bind  8778  (storage 0.0.0.0)))
+        (bind  8778  (quote 0.0.0.0)))
  0)
 

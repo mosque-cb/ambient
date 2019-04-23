@@ -7,6 +7,6 @@
   (progn
     (execute  socket (spaceconcat '(guest LINE)))
     (execute  socket 'LINE)
-    (execute  socket (print (spaceconcat (list (storage exit) 'LINE))))))
+    (execute  socket (print (spaceconcat (list (quote exit) 'LINE))))))
 
-(main (connect  (storage bbs.pku.edu.cn:23)))
+(main (connect  (quote bbs.pku.edu.cn:23)))

@@ -2,10 +2,10 @@
   (if  (eq lst  nil)
       nil
     (if  (not (eq  (find (car lst) 
-                           (storage Content-Length:)) 
+                           (quote Content-Length:)) 
                    nil))
         (atoi  (strdup (car lst)
-                       (add 2 (find (car lst) (storage : )))
+                       (add 2 (find (car lst) (quote : )))
                        (strlen (car lst))))
       (exactsize (cdr lst)))))
 
@@ -93,12 +93,12 @@
 
 (defun  handle (socket data)
   (progn
-    (send socket (concat (lineconcat (list (storage POST /glm/mmap HTTP/1.1) 
-                                           (storage Content-Type: application/binary) 
-                                           (storage Host: www.google.com) 
-                                           (storage Content-Length: 55) 
-                                           (storage Expect: 100-continue) 
-                                           (storage Connection: Close)))
+    (send socket (concat (lineconcat (list (quote POST /glm/mmap HTTP/1.1) 
+                                           (quote Content-Type: application/binary) 
+                                           (quote Host: www.google.com) 
+                                           (quote Content-Length: 55) 
+                                           (quote Expect: 100-continue) 
+                                           (quote Connection: Close)))
                          'LINE
                          'LINE))
     (send socket data)
@@ -107,7 +107,7 @@
     (close socket)))
 
 (handle 
- (connect (storage www.google.com))
+ (connect (quote www.google.com))
  (formatdata 10015
              10110
              0

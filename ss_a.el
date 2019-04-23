@@ -1,4 +1,4 @@
-(setq  socket_heavn (jcreate))
+(seq  socket_heavn (jcreate))
 
 (defun saferecv(en in material)
   (if (eq material 'invalid)
@@ -44,7 +44,7 @@
 
 (defun structip(ip port)
   (print  (concat ip
-                  (storage :)
+                  (quote :)
                   (itoa (add (mul (car port)
                                   256)
                              (car (cdr port)))))))
@@ -168,7 +168,7 @@
      socket)))
 
 (pjoin (pcreate 500 'dispatch (init (aecreate 'select)      
-                                    (bind  8565 (storage 0.0.0.0))) 
+                                    (bind  8565 (quote 0.0.0.0))) 
                 (atcreate) 
                 0))
 

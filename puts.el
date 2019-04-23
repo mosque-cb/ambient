@@ -2,10 +2,10 @@
   (if  (eq lst  nil)
       nil
     (if  (not (eq  (find (car lst) 
-                           (storage Content-Length:)) 
+                           (quote Content-Length:)) 
                    nil))
         (print (atoi  (strdup (car lst)
-                              (add 2 (find (car lst) (storage : )))
+                              (add 2 (find (car lst) (quote : )))
                               (strlen (car lst)))))
       (exactsize (cdr lst)))))
 
@@ -33,7 +33,7 @@
         (wrap_strategy socket file))
     (if (big 100 (print (strlen material)))
         (progn
-          (print (storage strategy error))
+          (print (quote strategy error))
           (print material)
           (close socket))
       (progn
@@ -62,7 +62,7 @@
           (send socket 'ok)
           (wrap_strategy socket 
                          (fopen filename 'wb)))
-      (print (storage remote error)))))
+      (print (quote remote error)))))
 
 (defun  handle (en socket)
   (remote en
@@ -88,7 +88,7 @@
                 'dispatch 
                 (init 
                  (aecreate 'select) 
-                 (bind  8778 (storage 0.0.0.0)))
+                 (bind  8778 (quote 0.0.0.0)))
                 0))
 
 

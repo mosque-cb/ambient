@@ -7,13 +7,13 @@
       nil
     (progn
       (print (concat 'file 'SPACE  no))
-      (system (concat (storage mkdir  )
+      (system (concat (quote mkdir  )
                       'SPACE
                       (wrapno no)))
-      (system (print (concat (storage /home/map/tools/hadoop_platform/hadoop_client_wutai/hadoop/bin/hadoop  fs  -get  /app/ecom/cm/sh/mizong/lbs_semantic/)
+      (system (print (concat (quote /home/map/tools/hadoop_platform/hadoop_client_wutai/hadoop/bin/hadoop  fs  -get  /app/ecom/cm/sh/mizong/lbs_semantic/)
                              (wrapno no)
-                             (storage /ios* . ))))
-      (system (concat (storage mv ios*  ) 'SPACE  (wrapno no)))
+                             (quote /ios* . ))))
+      (system (concat (quote mv ios*  ) 'SPACE  (wrapno no)))
       (print (concat 'file 'SPACE  no 'SPACE 'done))
       (sleep 100)
       (main (add no 1)))))

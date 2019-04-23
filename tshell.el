@@ -13,9 +13,9 @@
   (progn
     (send  socket (concat 
                    'LINE 
-                   (storage  WELCOME!!) 
+                   (quote  WELCOME!!) 
                    'LINE 
-                   (storage arabic>)))
+                   (quote arabic>)))
     (aeadd
      'read
      (lambda (second)   (progn
@@ -25,7 +25,7 @@
                                                 'LINE
                                                 (timetostring (unixtime))
                                                 'LINE 
-                                                (storage arabic>)))
+                                                (quote arabic>)))
                           (print (timetostring (unixtime)))
                           (print (concat 
                                   (concat 'first 'SPACE first)
@@ -46,7 +46,7 @@
 
 (dispatch 
  (init  (aecreate 'select)   
-        (bind  8855  (storage 0.0.0.0)))
+        (bind  8855  (quote 0.0.0.0)))
  0)
 
 

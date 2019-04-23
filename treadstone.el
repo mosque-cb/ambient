@@ -29,28 +29,28 @@
       (printlst (cdr n) ))))
 
 (defun evprogn ()
-  (if  (eq   (whole  args)  nil)
+  (if  (eq   (geq  args)  nil)
       nil
     (progn
-      (progn   (setq  val  (car  (whole args))))
-      (progn   (setq  args  (cdr  (whole args))))
+      (progn   (seq  val  (car  (geq args))))
+      (progn   (seq  args  (cdr  (geq args))))
       (evprogn ))))
 
 (defun  evif ()
   (progn
-    (progn  (setq  expr  
-                   (eject clink)))
+    (progn  (seq  expr  
+                   (remove_ptr clink)))
     (if  val
         (progn
-          (progn  (setq  expr  
+          (progn  (seq  expr  
                          (caddr 
-                          (whole expr))))
+                          (geq expr))))
           (wrapeval))
       (progn
-        (progn  (setq  expr  
+        (progn  (seq  expr  
                        (cadr 
                         (cddr 
-                         (whole expr)))))
+                         (geq expr)))))
         (wrapeval)))))
 
 (defun  formstruct (lst)
@@ -63,9 +63,9 @@
 
 (defun  wrapdefun (lst )
   (progn
-    (progn  (setq  globaldefun  
+    (progn  (seq  globaldefun  
                    (cons   lst  
-                           (whole   globaldefun))))
+                           (geq   globaldefun))))
     (print  'wrapdefun)))
 
 (defun  funp(name global)
@@ -101,7 +101,7 @@
     (if  (eq  arg  
               (car  (car env)))
         (progn
-          (progn (setq midx  
+          (progn (seq midx  
                        (cadr (car env))))
           1)
       (varfind arg  
@@ -118,63 +118,63 @@
 (defun  findvar  (arg  env)
   (if  (varfind   arg    
                   (car env))
-      (whole midx)
+      (geq midx)
     (findvar  arg  
               (cdr env))))
 
 (defun   evargslast()
   (progn
-    (progn  (setq  expr  
-                   (eject  clink)))
-    (if  (eq  (whole expr)  
+    (progn  (seq  expr  
+                   (remove_ptr  clink)))
+    (if  (eq  (geq expr)  
               'evprogn)
         (progn
           (evprogn)
           (popjreturn))
-      (if  (eq  (whole expr)  
+      (if  (eq  (geq expr)  
                 'printpos)
           (progn
-            (progn  (setq val 
-                          (printpos  (whole args))))
+            (progn  (seq val 
+                          (printpos  (geq args))))
             (popjreturn))
-        (if  (eq  (whole expr)  
+        (if  (eq  (geq expr)  
                   'printlst)
             (progn
-              (progn  (setq val 
-                            (printlst  (whole args))))
+              (progn  (seq val 
+                            (printlst  (geq args))))
               (popjreturn))
-          (if  (primitivep  (whole  expr))
+          (if  (primitivep  (geq  expr))
               (progn
-                (progn  (setq val 
-                              (primitive (whole expr) 
-                                         (whole args))))
+                (progn  (seq val 
+                              (primitive (geq expr) 
+                                         (geq args))))
                 (popjreturn))
             (sapply)
             ))))))
 
 (defun  sapply ()
   (progn    
-    (progn  (setq  expr  
-                   (findexpr (whole expr) 
-                             (whole globaldefun))))
-    (progn  (setq  env 
-                   (bindvars         (car (whole expr))    
-                                     (whole args)
-                                     (whole  env))))
-    (progn  (setq  expr 
-                   (cadr  (whole expr))))
+    (progn  (seq  expr  
+                   (findexpr (geq expr) 
+                             (geq globaldefun))))
+    (progn  (seq  env 
+                   (bindvars         (car (geq expr))    
+                                     (geq args)
+                                     (geq  env))))
+    (progn  (seq  expr 
+                   (cadr  (geq expr))))
     (wrapeval)))
 
 (defun   evargscombi ()
   (progn
-    (progn  (setq  args 
-                   (eject clink)))
+    (progn  (seq  args 
+                   (remove_ptr clink)))
     (progn  (join args  
-                  (whole val)))
-    (progn  (setq  env 
-                   (eject  clink)))
-    (progn  (setq  expr  
-                   (eject  clink)))
+                  (geq val)))
+    (progn  (seq  env 
+                   (remove_ptr  clink)))
+    (progn  (seq  expr  
+                   (remove_ptr  clink)))
     (evargs)))
 
 (defun   evargs ()
@@ -182,73 +182,73 @@
     (if  (eq expr nil)
         (evargslast)
       (progn
-        (progn   (press   clink  
-                          (cdr (whole expr))))
-        (progn   (press   clink  
-                          (whole env)))
-        (progn   (press   clink  
-                          (whole args)))
-        (progn   (press   clink  
+        (progn   (add_long   clink  
+                          (cdr (geq expr))))
+        (progn   (add_long   clink  
+                          (geq env)))
+        (progn   (add_long   clink  
+                          (geq args)))
+        (progn   (add_long   clink  
                           'evargscombi))
-        (progn  (setq  expr 
-                       (car  (whole expr))))
+        (progn  (seq  expr 
+                       (car  (geq expr))))
         (wrapeval)))))
 
 (defun  popjreturn ()
   (progn
-    (progn  (setq  expr 
-                   (eject clink)))
-    (funcall  (whole expr))
+    (progn  (seq  expr 
+                   (remove_ptr clink)))
+    (funcall  (geq expr))
     ))
 
 (defun   wrapeval ()
   (progn
-    (if  (digitp  (whole expr ))
+    (if  (digitp  (geq expr ))
         (progn
-          (progn  (setq  val  
-                         (whole expr)))
+          (progn  (seq  val  
+                         (geq expr)))
           (popjreturn))
-      (if  (eq  (whole expr) nil)
+      (if  (eq  (geq expr) nil)
           (progn
-            (progn  (setq  val  nil))
+            (progn  (seq  val  nil))
             (popjreturn))
-        (if  (charp  (whole expr))
+        (if  (charp  (geq expr))
             (progn
-              (progn  (setq  val 
-                             (findvar (whole expr)
-                                      (whole  env))))
+              (progn  (seq  val 
+                             (findvar (geq expr)
+                                      (geq  env))))
               (popjreturn))
-          (if  (eq (car (whole expr))  'quote)
+          (if  (eq (car (geq expr))  'quote)
               (progn
-                (progn  (setq  val 
-                               (cadr  (whole expr))))
+                (progn  (seq  val 
+                               (cadr  (geq expr))))
                 (popjreturn))
-            (if  (eq (car (whole expr))  'if)
+            (if  (eq (car (geq expr))  'if)
                 (progn
-                  (progn   (press   clink  
-                                    (whole expr)))
-                  (progn   (press   clink  
+                  (progn   (add_long   clink  
+                                    (geq expr)))
+                  (progn   (add_long   clink  
                                     'evif))
-                  (progn  (setq  expr   
-                                 (cadr  (whole expr))))
+                  (progn  (seq  expr   
+                                 (cadr  (geq expr))))
                   (wrapeval))
-              (if  (eq (car (whole expr))  'defun)
-                  (wrapdefun  (cdr (whole expr )))
-                (if  (eq (car (whole expr))  'progn)
+              (if  (eq (car (geq expr))  'defun)
+                  (wrapdefun  (cdr (geq expr )))
+                (if  (eq (car (geq expr))  'progn)
                     (progn
-                      (progn   (press   clink  
+                      (progn   (add_long   clink  
                                         'evprogn))
-                      (progn  (setq  expr   
-                                     (cdr (whole expr))))
-                      (progn  (setq  args  
+                      (progn  (seq  expr   
+                                     (cdr (geq expr))))
+                      (progn  (seq  args  
                                      nil))
                       (evargs))
                   (progn
-                    (progn   (press   clink  
-                                      (car  (whole expr))))
-                    (progn  (setq  expr   
-                                   (cdr (whole expr))))
-                    (progn  (setq  args  
+                    (progn   (add_long   clink  
+                                      (car  (geq expr))))
+                    (progn  (seq  expr   
+                                   (cdr (geq expr))))
+                    (progn  (seq  args  
                                    nil))
                     (evargs)))))))))))
 
@@ -262,45 +262,45 @@
 (defun once  ( )
   (progn 
     (display )
-    (setq  env     nil)
-    (setq  zencode  nil)
-    (setq  zendata  nil)
-    (setq midx  nil)
-    (setq  globaldefun  nil)
+    (seq  env     nil)
+    (seq  zencode  nil)
+    (seq  zendata  nil)
+    (seq midx  nil)
+    (seq  globaldefun  nil)
 
     (main   basicdefun )
     (main   basicapply )
 
-    (setq  env     nil)
-    (setq  zencode  nil)
-    (setq  zendata  nil)
-    (setq midx  nil)
-    (setq  globaldefun  nil)
+    (seq  env     nil)
+    (seq  zencode  nil)
+    (seq  zendata  nil)
+    (seq midx  nil)
+    (seq  globaldefun  nil)
     (display)
     (print  'hell)))
 
 (defun  autotest(num)
   (progn
     (once)
-    (print (concat (storage times is ) num))
+    (print (concat (quote times is ) num))
     (autotest (add num 1))))
 
 (defun  main (lst  )
   (if  (eq  lst  nil)
       nil
     (progn
-      (setq  expr  (car  lst))
+      (seq  expr  (car  lst))
       (print   (wrapeval))
       (main (cdr lst)  ))))
 
-(setq  val  nil)
-(setq  expr  nil)
-(setq  env  nil)
-(setq  args  nil)
-(setq  clink  nil)
-(setq midx  nil)
-(setq  primop  '(cons car cdr add minus mod random))
-(setq  globaldefun  nil)
+(seq  val  nil)
+(seq  expr  nil)
+(seq  env  nil)
+(seq  args  nil)
+(seq  clink  nil)
+(seq midx  nil)
+(seq  primop  '(cons car cdr add minus mod random))
+(seq  globaldefun  nil)
 (define  basicdefun   '( 
                         (defun  generand  (count range)
                           (if  (eq  count  0)

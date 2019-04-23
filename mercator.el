@@ -28,8 +28,8 @@
    'SPACE
    (exactsnki
     material
-    (find material (storage &ki=))
-    (find material (storage &vr_time)))))
+    (find material (quote &ki=))
+    (find material (quote &vr_time)))))
 
 (defun  reactor()
   (if (eofstdin)

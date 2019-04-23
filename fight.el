@@ -31,13 +31,13 @@
 
 (defun get_list(root xml)
   (progn
-    (system (concat (storage hadoop fs  -conf  )
+    (system (concat (quote hadoop fs  -conf  )
                     xml
                     'SPACE
-                    (storage  -ls )
+                    (quote  -ls )
                     root
                     'SPACE
-                    (storage  | tail -n  50  ->)
+                    (quote  | tail -n  50  ->)
                     (concat xml  'owner)))
     (fload (concat xml  'owner))))
 

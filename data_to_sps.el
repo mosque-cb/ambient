@@ -1,5 +1,5 @@
-(setq ok 0)
-(setq notok 0)
+(seq ok 0)
+(seq notok 0)
 
 (defun format_item(lst)
   (if  (eq lst nil)
@@ -38,7 +38,7 @@
   (if (eq socket nil)
       nil
     (execute  socket (list 'get 
-                           (concat (storage st:) key)))))
+                           (concat (quote st:) key)))))
 
 (defun compare(online offline)
   (progn
@@ -57,8 +57,8 @@
            (print offline))
           (if (eq (matter online (car (cdr offline)))
                   (car offline))
-              (setq  ok (add ok 1))
-            (setq  notok (add notok 1)))
+              (seq  ok (add ok 1))
+            (seq  notok (add notok 1)))
           (killjson online))))))
 
 (defun switch(type)
@@ -133,17 +133,17 @@
 
 (defun  post (socket ip data)
   (progn
-    (send socket (concat (lineconcat (list (storage POST /UserService/get_user_regular_stay_point/ HTTP/1.1) 
-                                           (concat (storage Host: ) ip)
-                                           (storage U-ApiKey:8b6c51b8a18ccbdae3c7ac74169ec3da) 
-                                           (concat (storage Content-Length: ) (itoa (strlen data)))
-                                           (storage User-Agent: http_post) 
-                                           (storage Content-Type: application/json) 
-                                           (storage Accept: */*) 
-                                           (storage Accept-Language: utf8) 
-                                           (storage Accept-Charset: iso-8859-1,*,utf-8) 
-                                           (storage Authorization: Basic YWRtaW46YWRtaW4=) 
-                                           (storage Connection: Keep-Alive)))
+    (send socket (concat (lineconcat (list (quote POST /UserService/get_user_regular_stay_point/ HTTP/1.1) 
+                                           (concat (quote Host: ) ip)
+                                           (quote U-ApiKey:8b6c51b8a18ccbdae3c7ac74169ec3da) 
+                                           (concat (quote Content-Length: ) (itoa (strlen data)))
+                                           (quote User-Agent: http_post) 
+                                           (quote Content-Type: application/json) 
+                                           (quote Accept: */*) 
+                                           (quote Accept-Language: utf8) 
+                                           (quote Accept-Charset: iso-8859-1,*,utf-8) 
+                                           (quote Authorization: Basic YWRtaW46YWRtaW4=) 
+                                           (quote Connection: Keep-Alive)))
                          'LINE
                          'LINE))
     (send socket data)
@@ -156,8 +156,8 @@
     (if (eq   (wrapsend socket (car lst))
               'not_find)
         (compare 
-         (wraprecv (post (connect (storage  10.94.32.33:8560))
-                         (storage   10.94.32.33)
+         (wraprecv (post (connect (quote  10.94.32.33:8560))
+                         (quote   10.94.32.33)
                          (genematerial (car lst))))
          (cdr (cdr lst)))
       nil)))
@@ -174,7 +174,7 @@
       (reactor))))
 
 (reactor
- (connect (storage  10.195.253.39:16379)))
+ (connect (quote  10.195.253.39:16379)))
 
 
 

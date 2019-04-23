@@ -42,7 +42,7 @@
 #endif
 #endif
 
-#define   BUF_SIZE 1024 * 1024
+#pragma pack(1)
 
 /*(string system)*/
 int cross_memcmp(const void * left, const void * right, size_t count) {
@@ -73,12 +73,12 @@ char * cross_strchr(const char * string, int ch) {
 }
 
 int cross_tolower(int c) {
-    if(c<='Z' && c>='A') return (c + 32);
+    if (c<='Z' && c>='A') return (c + 32);
     return (c);
 }
 
 int cross_toupper(int c) {
-    if(c<='z' && c>='a') return (c - 32);
+    if (c<='z' && c>='a') return (c - 32);
     return (c);
 }
 
@@ -105,7 +105,7 @@ int cross_atoi( char *nptr)
     }
 
     /*
-      if(new_ptr != NULL){
+      if (new_ptr != NULL) {
       *new_ptr = nptr - 1;}
       */
 
@@ -184,7 +184,7 @@ int skip_number(char *nptr, char **new_ptr) {
 void cross_fprintf(FILE* where, const char *fmt, ...)  
 {  
     va_list ap;
-    char format_string[BUF_SIZE];
+    char format_string[1024];
 
     va_start(ap, fmt);
     vsprintf(format_string, fmt, ap);
@@ -243,15 +243,7 @@ int color_fprintf(FILE *fp, const char *color, const char *fmt, ...) {
     int r = 0;
     va_start(args, fmt);
 
-#ifdef _WIN32
-    char format_string[BUF_SIZE];
-    vsprintf(format_string, fmt, args);
-    fprintf(fp, "%s", format_string);
-    fflush(fp);
-    //    cross_fprintf(fp, fmt, args, NULL);
-#else
     r = color_vfprintf(fp, color, fmt, args, NULL);
-#endif
     va_end(args);
     return r;
 }
@@ -285,7 +277,7 @@ int cross_ftell(char *file_tmp_name) {
     int count = 0;
     signed char ch;
     FILE* stream = fopen(file_tmp_name, "rb");
-    if(stream == 0 ) {
+    if (stream == 0 ) {
         return -1;    
     }
 
@@ -298,59 +290,66 @@ int cross_ftell(char *file_tmp_name) {
     count--;
 
     /*
-    fseek(stream, 0L, SEEK_END);
-    count = ftell(stream);
+      fseek(stream, 0L, SEEK_END);
+      count = ftell(stream);
     */
 
     fclose(stream);
     return count;
 } 
 
-void cross_read(char *file_name, int *sign, char *buf) {
+void cross_read(char *file_name, int *sign, char* buf) {
     FILE * fp;
     char file_tmp_name[256]="\0";
     int  file_size = 0;
 
-    cross_sprintf(file_tmp_name,"%s",file_name);
+    cross_sprintf(file_tmp_name, "%s", file_name);
     file_size = cross_ftell(file_tmp_name);
-    if( file_size == -1 ) {
+    if ( file_size == -1 ) {
         *sign = -1;
-        return;   
+        return;
     }
     else {
         fp = fopen(file_tmp_name, "rb");
         cross_fprintf(stderr, "size is  %d \r\n", file_size);
-        if (file_size >= BUF_SIZE) {
-            *sign = BUF_SIZE;
-            fclose(fp);
-            return;
-        }
-        fread(buf, file_size, 1, fp );
+        fread(buf, file_size, 1, fp);
         *sign = file_size;
         fclose(fp);
     }
 }
 /*(end file system)*/
-
-void * raw_new_object(void);
 void   recycle_raw_object(void * left);
-void * cross_calloc(int count, int length) {
-    void * mem = NULL;
+void cross_free(void* p) {
+    int gap = sizeof(int) + sizeof(char);
+    if ((int)(*((char*)p - gap)) == 1) {
+        recycle_raw_object((void*)(*(long*)((char*)p - gap - sizeof(long))));
+    }
+    else {
+        free((char*)p - gap);
+    }
+}
 
-    if(count * length == BUF_SIZE * sizeof(char)){
-        mem = raw_new_object();
-        memset(mem + sizeof(int), 0, BUF_SIZE - sizeof(int));
-        *(int*)mem = BUF_SIZE;
+#define  ARABIC (1 + sizeof(int) + sizeof(long) * 2)
+
+
+void * spawn_raw_object(void);
+void * cross_calloc(int count, int length) {
+    int gap = sizeof(int) + sizeof(char);    
+    void * mem = NULL;
+    if (count * length == ARABIC * sizeof(char)) {
+        mem = spawn_raw_object();
+        memset(mem, 0, ARABIC + gap);
+        *(char*)mem = 1;
     }
     else{
-        mem = calloc(sizeof(int) + count * length, sizeof(char));
+        mem = calloc(gap + count * length, sizeof(char));
         if (mem == 0) {
             exit(-1);
         }
-        *(int*)mem = 0;
+        *(char*)mem = 0;
     }
-
-    return (char*)mem + sizeof(int);
+    *(int*)((char*)mem + sizeof(char)) = count * length;
+    return (char*)mem + gap;
 }
 
 void * cross_malloc(int length) {
@@ -361,17 +360,7 @@ void cross_memcpy(void * dst, void * src, int length) {
     memcpy(dst, src, length);
 }
 
-void   cross_free(void *p) {
-    if (*((int*)p - 1) == BUF_SIZE) {
-        recycle_raw_object( (void*)( *(long*)( (char*)p - sizeof(int) - sizeof(long) ) ));
-    }
-    else {
-        free(p - sizeof(int));
-    }
-}
-
 #define  NULLVALUE  999999
-#define  ARABIC     18
 typedef void * (*original_callback)(void * _left);
 enum tokens {
     NUMBER = 'n', NAME, VALUE
@@ -403,22 +392,14 @@ typedef enum {
     FUN,
     DEFUN,
     DEFMACRO,
-    VAR,
     CHAR,    
     QUOTE,
     LIST,
     QUOTEX,
     IF,
     PROGN,
-    WHOLE,
-    COMBI,
-    EXCHANGE,
-    TOP,
-    EJECT,
     JOIN,
-    PRESS,
     EVAL,
-    SETQ,
     DEFINE,
     EQ,
     SYMBOL,
@@ -432,7 +413,6 @@ typedef enum {
     NOP,
     EVIF = 120,
     EVMACRO,
-    EVSETQ,
     EVDEFINE,
     EVARGSCOMBI,
     EVARGS,
@@ -441,7 +421,6 @@ typedef enum {
     EVFUNCALL,
     EVFUNCALLMID,
     EVFUNCALLEND,
-    EVPRESS,
     EVJOIN,
     EVPROGNMID,
     EVPROGNEND,
@@ -467,7 +446,6 @@ typedef enum {
     EFQUOTE,
     EFQUOTEX,
     EFQUOTEXEND,
-    EFSETQ,
     EFDEFINE,
     EFITER,
     EFSLEEP,
@@ -478,13 +456,7 @@ typedef enum {
     EFITEREND,
     EFLAMBDAEND,
     EFFUNCALLEND,
-    EFEJECT,
-    EFWHOLE,
     EFJOIN,
-    EFPRESS,
-    EFTOP,
-    EFEXCHANGE,
-    EFCOMBI,
     EFLISTBEGIN,
     EFLISTEND,
 #ifdef FORTH
@@ -518,7 +490,6 @@ typedef struct type {
         unsigned long un_long;
         char* a_storage;
         char a_char;
-        char s_var[ARABIC];
         struct type * n_data;
     } u_data;
     int ref_count;
@@ -526,6 +497,14 @@ typedef struct type {
     struct type* next;
     void* mother;
 } type;
+
+int css(void* p) {
+    return *(int*)(((type*)p)->u_data.a_storage) - sizeof(int) - 1;
+}
+
+void* csp(void* p) {
+    return (char*)(((type*)p)->u_data.a_storage) + sizeof(int);
+}
 
 typedef struct {
     void* mem_next;
@@ -544,7 +523,6 @@ type * primitive_evfuncall = NULL;
 type * primitive_evfuncallmid = NULL;
 type * primitive_evfuncallend = NULL;
 type * primitive_evmacro = NULL;
-type * primitive_evsetq = NULL;
 type * primitive_evdefine = NULL;
 type * primitive_evargscombi = NULL;
 type * primitive_evargs = NULL;
@@ -552,7 +530,6 @@ type * primitive_evunbindvars = NULL;
 type * primitive_evprogn = NULL;
 type * primitive_evprognmid = NULL;
 type * primitive_evprognend = NULL;
-type * primitive_evpress = NULL;
 type * primitive_evjoin = NULL;
 type * primitive_effun = NULL;
 type * primitive_efyield = NULL;
@@ -578,7 +555,6 @@ type * primitive_efquotex = NULL;
 type * primitive_efquotexend = NULL;
 type * primitive_efeval = NULL;
 type * primitive_efevalend = NULL;
-type * primitive_efsetq = NULL;
 type * primitive_efdefine = NULL;
 type * primitive_eflambda = NULL;
 type * primitive_efiter = NULL;
@@ -589,13 +565,8 @@ type * primitive_effuncall = NULL;
 type * primitive_eflambdaend = NULL;
 type * primitive_efiterend = NULL;
 type * primitive_effuncallend = NULL;
-type * primitive_efeject = NULL;
-type * primitive_eftop = NULL;
-type * primitive_efcombi = NULL;
-type * primitive_efexchange = NULL;
 type * primitive_efwhole = NULL;
 type * primitive_efjoin = NULL;
-type * primitive_efpress = NULL;
 type * primitive_eflistbegin = NULL;  /*add by rosslyn, 2014.6.14*/
 type * primitive_eflistend = NULL;
 
@@ -610,34 +581,12 @@ type * primitive_zfthen = NULL;
 char global_filename[24] = "\0";
 
 wraptype * mem_manager_unused = NULL;
+
 wraptype * mem_manager_used = NULL;
 wraptype * primitive_used = NULL;
 
 wraptype * mem_manager_reserved = NULL;
 wraptype * primitive_reserved = NULL;
-
-
-
-
-typedef struct raw_type {
-    void * content;
-    void * mother;
-} raw_type;
-
-typedef struct {
-    void * mem_next;
-    raw_type value;
-} raw_wraptype;
-
-
-raw_wraptype * raw_mem_manager_unused = NULL;
-raw_wraptype * raw_mem_manager_used = NULL;
-raw_wraptype * raw_primitive_used = NULL;
-
-
-raw_wraptype * raw_mem_manager_reserved = NULL;
-raw_wraptype * raw_primitive_reserved = NULL;
-
 
 
 #define  BIT_VOLUME           128
@@ -950,7 +899,7 @@ void encryption(compress_type *data, char * encryption_data, int *present_label,
     while (whole_count < count) {
         single_data = data[whole_count];
         cross_fprintf(stderr, "%d ", single_data);
-        if(single_data > BIT_VOLUME) {
+        if (single_data > BIT_VOLUME) {
             color_fprintf(stderr, COLOR_RED, "exit encryption bytes incorrect %d %d %d %d\r\n", whole_count, count, single_data, BIT_VOLUME);
         }
         if (label[single_data] == NULL) {
@@ -1014,7 +963,7 @@ int decryption(unsigned char* encryption_data, int present_label,
                 value = get_head_value(encryption_data, &label,
                                        8 * sizeof(compress_type));
                 cross_fprintf(stderr, "%d ", value);
-                if(value > BIT_VOLUME) {
+                if (value > BIT_VOLUME) {
                     color_fprintf(stderr, COLOR_RED, "exit \r\ndecryption bytes incorrect %d %d %d %d\r\n", label, present_label, value, BIT_VOLUME);
                 }
                 decryption_contain[i++] = value;
@@ -1048,7 +997,7 @@ void huffman_encryption(unsigned char *_lisa, int _length, char *filename) {
     char file_tmp_name[256] = "\0";
 
     huff_object* min_contain = (huff_object *) cross_calloc(6 * length, sizeof(huff_object));
-    for (i = 0; i < 6 * length; i++){
+    for (i = 0; i < 6 * length; i++) {
         huff_init(&min_contain[i]);
     }
 
@@ -1089,7 +1038,7 @@ void huffman_decryption(unsigned char *_lisa, int _length) {
     min_contain = (huff_object *) cross_calloc(6 * length,
                                                sizeof(huff_object));
 
-    for (i = 0; i < 6 * length; i++){
+    for (i = 0; i < 6 * length; i++) {
         huff_init(&min_contain[i]);
     }
 
@@ -1116,55 +1065,27 @@ void wrap_process(char *_lisa, int length, char *filename) {
 /*(code system end)*/
 #endif
 
-int raw_global_count = 40;
-void * raw_withdraw(void);
-void * raw_new_object(void) {
-    raw_type * outcome;
-    void * content = NULL;
-
-    if (!raw_mem_manager_unused) {
-        if (raw_primitive_used->mem_next == NULL)
-            raw_withdraw();
-        raw_mem_manager_unused = raw_primitive_used->mem_next;
-        raw_primitive_used->mem_next = NULL;
-        raw_mem_manager_used = raw_primitive_used;
-    }
-
-    outcome = &(raw_mem_manager_unused->value);
-    outcome->mother = raw_mem_manager_unused;
-    raw_mem_manager_unused = raw_mem_manager_unused->mem_next;
-    ((raw_wraptype *) outcome->mother)->mem_next = NULL;
-
-    content = outcome->content;
-    *(long *)content = (long)outcome;
-    return content + sizeof(long);
-}
-
-void   recycle_raw_object(void * left){
-    ((raw_wraptype*)(((raw_type*)(left))->mother))->mem_next = NULL;
-    raw_mem_manager_used->mem_next = ((raw_wraptype*)(((raw_type*)(left))->mother));
-    raw_mem_manager_used = ((raw_wraptype*)(((raw_type*)(left))->mother));
-}
-
-int global_count = 43021;
+int global_count = 2210;
 int allocation = 0;
 int recycled = 0;
 int local_recycled = 0, local_allocation = 0;
-void count_object(void) {
-    cross_fprintf(stderr, "%d  ", allocation);
-}
 
 void * withdraw(void * _left);
+void init_object(void);
 type * new_object(void) {
     type * outcome;
-
-    if (!mem_manager_unused) {
+    if (NULL == mem_manager_unused) {
         if (primitive_used->mem_next == NULL) {
             withdraw(primitive_empty); /*modify  by  rosslyn  for High Order Machine 2013.4.23*/
         }
         mem_manager_unused = primitive_used->mem_next;
         primitive_used->mem_next = NULL;
         mem_manager_used = primitive_used;
+    }
+    
+    if (NULL == mem_manager_unused) {
+        cross_fprintf(stderr, "maybe memory leak, realloc primitive memory\r\n");
+        init_object();
     }
 
     outcome = &(mem_manager_unused->value);
@@ -1237,12 +1158,15 @@ void gc_atom(void * _left) {
         if (left->em == STORAGE) {
             cross_free(left->u_data.a_storage);
         }
-        else if (left->em == VAR) {
-            remove_lambda(left);
-        }
+        
+        /*
+          else if (left->em == STORAGE) {
+          remove_lambda(left);
+          }
+        */
         gc_atom_inner(left);
     }
-    if(left->ref_count < 0) {
+    if (left->ref_count < 0) {
         color_fprintf(stderr, COLOR_RED, "ref_count error %d\r\n", left->ref_count);
         left_fprint(stderr, left);
         cross_fprintf(stderr, "\r\n");
@@ -1278,10 +1202,10 @@ void * left_fprint(FILE* where, void * _left) {
         cross_fprintf(where, "%s", "nop");
         break;
     case DEBUG:
-        color_fprintf(where, COLOR_RED, "%s", left->u_data.a_storage + sizeof(int));
+        color_fprintf(where, COLOR_RED, "%s", csp(left));
         break;
     case STORAGE:
-        cross_fprintf(where, "%s", left->u_data.a_storage + sizeof(int));
+        cross_fprintf(where, "%s", csp(left));
         break;
     case CONT:
         cross_fprintf(where, "continue");
@@ -1313,10 +1237,6 @@ void * left_fprint(FILE* where, void * _left) {
     case CHAR:
         cross_fprintf(where, "%c", left->u_data.a_char);
         break;
-    case VAR:
-        cross_fprintf(where, "%s", left->u_data.s_var);
-        break;
-        /*huuu , for less memory,there is no room for s_var of FUN,so use address instead.*/
     case FUN:
         cross_fprintf(where, "%s", "fun");
         break;
@@ -1335,8 +1255,11 @@ void * left_fprint(FILE* where, void * _left) {
     case DEFMACRO:
         cross_fprintf(where, "%s", "defmacro");
         break;
-    case SETQ:
-        cross_fprintf(where, "%s", "setq");
+    case STDIN:
+        cross_fprintf(where, "%s", "stdin");
+        break;
+    case EOFSTDIN:
+        cross_fprintf(where, "%s", "eofstdin");
         break;
     case DEFINE:
         cross_fprintf(where, "%s", "define");
@@ -1440,9 +1363,14 @@ void * new_storage(char* _material, int size) {
     present = new_object();
     present->em = STORAGE;
     storage_size = size + 1 + sizeof(int);
-    response = (char*) cross_calloc(storage_size, sizeof(char));
-    cross_memcpy(response + sizeof(int), _material, size);
-    *(int*)response = storage_size - sizeof(int);
+    response = (char*)cross_calloc(storage_size, sizeof(char));
+    if (NULL != _material) {
+        cross_memcpy(response + sizeof(int), _material, size);
+        *(int*)response = storage_size;
+    }
+    else {
+        *(int*)response = 1 + sizeof(int);
+    }
     present->u_data.a_storage = response;
     return present;
 }
@@ -1553,20 +1481,18 @@ int c_eq(void * _left, void * _right) {
         if (left->em == right->em) {
             switch (left->em) {
             case STORAGE:
-                if( *(int*)(left->u_data.a_storage) != *(int*)(right->u_data.a_storage)){
+                if ( *(int*)(left->u_data.a_storage) != *(int*)(right->u_data.a_storage)) {
                     outcome = 0;
                 }
                 else{
-                    outcome = !strcmp(left->u_data.a_storage + sizeof(int), right->u_data.a_storage + sizeof(int)); 
+                    outcome = !strcmp(csp(left), csp(right)); 
                 }
                 break;
-            case VAR:
-                outcome = !strcmp(left->u_data.s_var, right->u_data.s_var); /*modify  by  rosslyn   2013.5.12*/
-                break;
             case FUN:
-                outcome = !strcmp(left->u_data.s_var, right->u_data.s_var); /*modify  by  rosslyn   2013.5.12*/
+                outcome = !strcmp(csp(left),
+                                  csp(right)); /*modify  by  rosslyn   2013.5.12*/
                 outcomex = (left->u_data.f_callback == right->u_data.f_callback); /*modify  by  rosslyn   2014.6.14*/
-                if(outcome != outcomex) {
+                if (outcome != outcomex) {
                     color_fprintf(stderr, COLOR_RED, "interesting\r\n");
                 }
                 break;
@@ -1578,12 +1504,6 @@ int c_eq(void * _left, void * _right) {
                 break;
             }
         } 
-        else if( left->em == STORAGE && right->em == VAR ){
-            outcome = !strcmp(left->u_data.a_storage + sizeof(int), right->u_data.s_var);
-        }
-        else if( right->em == STORAGE && left->em == VAR ){
-            outcome = !strcmp(right->u_data.a_storage + sizeof(int), left->u_data.s_var);
-        }
         else {
             outcome = 0;
         }
@@ -1613,7 +1533,7 @@ void * original_not(void * _left) {
         return new_debug(debug_inf, cross_strlen(debug_inf));
     }
 
-    if (left->u_data.un_long == 0){
+    if (left->u_data.un_long == 0) {
         outcome = long_type(1);
     }
     else{
@@ -1637,7 +1557,7 @@ void * original_and(void * _left) {
             return new_debug(debug_inf, cross_strlen(debug_inf));
         }
 
-        if(right->u_data.un_long != 1){
+        if (right->u_data.un_long != 1) {
             return long_type(0);
         }
         left = c_cdr(left);
@@ -1660,7 +1580,7 @@ void * original_or(void * _left) {
             return new_debug(debug_inf, cross_strlen(debug_inf));
         }
 
-        if(right->u_data.un_long == 1){
+        if (right->u_data.un_long == 1) {
             return long_type(1);
         }
         left = c_cdr(left);
@@ -1726,7 +1646,7 @@ void * long_type(unsigned long i) {
         abs_i = 0 - i;
     }
 
-    if(abs_i < AMOUNT){
+    if (abs_i < AMOUNT) {
         return c_copy_atom(primitive_small[AMOUNT + i]);
     }
     else{
@@ -1809,7 +1729,7 @@ unsigned int hashkey(flexhash* obj, void* key, int length) {
     return ihash;
 }
 
-memory* getarea(flexhash* obj, void* key, unsigned int* ihash, int length) {
+memory* getarea(flexhash* obj, void* key, int length, unsigned int* ihash) {
     memory* pmemory = NULL;
     if (obj->m_hashkey == NULL) {
         *ihash = hashkey(obj, key, length) % obj->m_hashsize;
@@ -1833,10 +1753,9 @@ memory* getarea(flexhash* obj, void* key, unsigned int* ihash, int length) {
     return NULL;
 }
 
-memory* getarea_delete(flexhash* obj, void* key, unsigned int* ihash) {
+memory* getarea_delete(flexhash* obj, void* key, unsigned int* ihash, int length) {
     memory* pmemory;
     memory* prevpmemory;
-    int length = cross_strlen(key);
     if (length > obj->m_keysize) {
         length = obj->m_keysize;
     }
@@ -1894,8 +1813,11 @@ void freedatachain(carriage* obj) {
     while (carry != NULL) { 
         char* bytes = (char*)carry;     
         carriage* next = carry->next;       
-        
+        /*
         cross_free(bytes);
+        abcabc
+        */
+        
         carry = next;   
     }
 }
@@ -1992,15 +1914,14 @@ void destroy(flexhash* obj) {
     /*  free(obj->m_block);*/
 }
 
-int setat(flexhash* obj, void* key, void* newvalue) {
+int setat(flexhash* obj, void* key, void* newvalue, int length) {
     memory* pmemory;
     unsigned int ihash;
-    int length = cross_strlen(key);
     if (length > obj->m_keysize) {
         length = obj->m_keysize;
     }
 
-    if ((pmemory = getarea(obj, key, &ihash, length)) == NULL) {
+    if ((pmemory = getarea(obj, key, length, &ihash)) == NULL) {
         pmemory = newmemory(obj);
         
         *(int*)(&pmemory->length) = length;  /*add  by rosslyn, 2015/6/27*/
@@ -2016,10 +1937,10 @@ int setat(flexhash* obj, void* key, void* newvalue) {
     return 1;
 }
 
-int delete(flexhash* obj, void* key) {
+int delete(flexhash* obj, void* key, int length) {
     unsigned int ihash = 0;
 
-    memory* pmemory = getarea_delete(obj, key, &ihash);
+    memory* pmemory = getarea_delete(obj, key, &ihash, length);
     if (pmemory == NULL) {
         return 0;
     }
@@ -2029,19 +1950,18 @@ int delete(flexhash* obj, void* key) {
     return 1;
 }
 
-int getat(flexhash* obj, void* key, void* value) {
+int getat(flexhash* obj, void* key, int length, void* value) {
     unsigned int ihash = 0;
-    int length = cross_strlen(key);
     if (length > obj->m_keysize) {
         length = obj->m_keysize;
     }
 
-    memory* pmemory = getarea(obj, key, &ihash, length);
+    memory* pmemory = getarea(obj, key, length, &ihash);
     if (pmemory == NULL) {
         return 0;
     }
     
-    if(value) {
+    if (value) {
         cross_memcpy(value, (char*)(pmemory + 2) + obj->m_keysize, obj->m_valuesize);
     }
     return 1;
@@ -2061,13 +1981,13 @@ int dump_allitems(flexhash* obj, void* buffer) {
 
         int label;
         for (label = 0; label < obj->m_blocksize; label++) {
-            if( *(int*)(&single->length) != 0 ) {
+            if ( *(int*)(&single->length) != 0 ) {
                 /* if (cross_memcmp(obj->m_block, single + 2, obj->m_keysize + obj->m_valuesize) != 0) { */
                 cross_memcpy(buffer, (single + 2), obj->m_keysize + obj->m_valuesize);
                 buffer = (char*)buffer + obj->m_keysize + obj->m_valuesize;
 
                 count++;
-                if(count > obj->m_count) {
+                if (count > obj->m_count) {
                     return 1;
                 }
             }
@@ -2089,17 +2009,17 @@ int next(flexhash* obj, void* key, void* val, size_t* iter) {
     while (carry != NULL && block_no-- > 0)
         carry = carry->next;
 
-    while(carry) {
+    while (carry) {
         memory *single = (memory *)(carry + 1) + block_offset * obj->m_datasize;
         
         for (label = block_offset; label< obj->m_blocksize; label++) {
             *iter += 1;
-            if( *(int*)(&single->length) != 0 ) {
+            if ( *(int*)(&single->length) != 0 ) {
                 /* if (cross_memcmp(obj->m_block, single + 2, obj->m_keysize + obj->m_valuesize) != 0) { */
-                if(key) {
+                if (key) {
                     cross_memcpy(key, single + 2, obj->m_keysize);
                 }
-                if(val) {
+                if (val) {
                     cross_memcpy(val, (char*)(single + 2) + obj->m_keysize , obj->m_valuesize);
                 }
                 return 1;
@@ -2136,17 +2056,17 @@ flexhash * global_var = NULL;
 flexhash * global_define = NULL;
 flexhash * global_primitive = NULL;
 
-void assign(char* word, void* _expr, void* _env, flexhash** e) {
+void assign(char* word, int length, void* _expr, void* _env, flexhash** e) {
     entry obj;
     obj.word = word;
     obj._env = _env;
     obj.u_data._expr = _expr;
-    setat(*e, word, &obj);
+    setat(*e, word, &obj, length);
 }
 
-entry lookup(char* word, flexhash* e) {
+entry lookup(char* word, int length, flexhash* e) {
     entry outcome;
-    if (0 == getat(e, word, &outcome)) {
+    if (0 == getat(e, word, length, &outcome)) {
         outcome._env = NULL;
         outcome.u_data._expr = NULL;
         return outcome;
@@ -2156,13 +2076,13 @@ entry lookup(char* word, flexhash* e) {
     }
 }
 
-flexhash * freeentry(char* word, flexhash* e) {
+flexhash * freeentry(char* word, int length, flexhash* e) {
     entry outcome;
-    if (0 == getat(e, word, &outcome)) {
+    if (0 == getat(e, word, length, &outcome)) {
         color_fprintf(stderr, COLOR_RED, "impossible entry\r\n");
     }
     else {
-        delete(e, word);
+        delete(e, word, length);
     }
     return e;
     /* global_lambda = freeentry("kkk", global_lambda);*/
@@ -2172,12 +2092,12 @@ void assign_primitive(char* word, original_callback _address, flexhash** e) {
     entry obj;
     obj.word = word;
     obj.u_data._address = _address;
-    setat(*e, word, &obj);
+    setat(*e, word, &obj, cross_strlen(word));
 }
 
 original_callback lookup_primitive(char* word, flexhash* e) {
     entry outcome;
-    if (0 == getat(e, word, &outcome)) {
+    if (0 == getat(e, word, cross_strlen(word), &outcome)) {
         return NULL;
     }
     else{
@@ -2189,10 +2109,12 @@ void * original_lambdap(void * _left) {
     type * mid_expr, *outcome;
     type * left = (type *)c_car(_left);
     entry result;
-    if (left->em != VAR) {
+    if (left->em != STORAGE) {
         return long_type(0);
     }
-    result = lookup((char *)(left->u_data.s_var), global_lambda);
+    result = lookup(csp(left),
+                    css(left),                    
+                    global_lambda);
     mid_expr = result.u_data._expr;
     if (mid_expr == NULL) {
         outcome = long_type(0);
@@ -2209,35 +2131,36 @@ void * original_fload(void * _left) {
     char* response = NULL; 
     char debug_inf[256] = "\0";
     int sign = 0;
-    char* material = NULL;
 
     left = c_car (_left);
-    if(left->em == VAR){
-        material = left->u_data.s_var;
-    }
-    else if(left->em == STORAGE){
-        material = left->u_data.a_storage + sizeof(int);
-    }
-    else {
-        cross_strcpy(debug_inf, "first para should be a VAR or STORAGE\r\n");
+    if (left->em != STORAGE) {
+        cross_strcpy(debug_inf, "first para should be a STORAGE\r\n");
         return new_debug(debug_inf, cross_strlen(debug_inf));
     }
 
-    response = (char*) cross_calloc(BUF_SIZE, sizeof(char));
-    cross_read(material, &sign, response);
-    if(sign == -1){
-        cross_sprintf(debug_inf, "%s Not Exists\r\n", material);
-        cross_free(response);
-        return new_debug(debug_inf, cross_strlen(debug_inf));
-    }
-    if(sign == BUF_SIZE){
-        cross_sprintf(debug_inf, "File Too Big\r\n");
+    response = (char*)cross_calloc(1024, sizeof(char));
+    cross_read(csp(left), &sign, response);
+    if (sign == -1) {
+        cross_sprintf(debug_inf, "%s Not Exists\r\n", csp(left));
         cross_free(response);
         return new_debug(debug_inf, cross_strlen(debug_inf));
     }
     present = new_storage(response, sign);
     cross_free(response);
     return present;
+}
+
+
+int real_size(int storage_size) {
+    return storage_size * sizeof(unsigned long) + 1 + sizeof(int);
+}
+
+int virtual_size(int storage_size) {
+    return (storage_size - 1 -  sizeof(int)) / (sizeof(unsigned long));        
+}
+
+void* data_ptr(void* response) {
+    return (char*)response + sizeof(int);
 }
 
 void * original_dump_bytes(void *_left) {
@@ -2247,23 +2170,19 @@ void * original_dump_bytes(void *_left) {
     char * begin = NULL;
     char debug_inf[256] = "\0";
 
-    if(left->em == VAR) {
-        begin = left->u_data.s_var;
-        size = cross_strlen(begin);
+    if (left->em == STORAGE) {
+        begin = csp(left);
+        size = css(left);
     }
-    else if(left->em == STORAGE) {
-        begin = left->u_data.a_storage + sizeof(int);
-        size = *(int*)(left->u_data.a_storage) - 1;
-    }
-    else if(left->em == EMPTY) {
+    else if (left->em == EMPTY) {
         return primitive_empty;
     }
     else {
-        cross_strcpy(debug_inf, "first para should be a VAR or STORAGE\r\n");
+        cross_strcpy(debug_inf, "first para should be a STORAGE\r\n");
         return new_debug(debug_inf, cross_strlen(debug_inf));
     }
 
-    if(begin != NULL && left->em != EMPTY){
+    if (begin != NULL && left->em != EMPTY) {
         for (i = 0; i < size; i++) {
             result = c_append(result, c_cons(char_type(*(begin + i)),
                                              primitive_empty));
@@ -2289,54 +2208,16 @@ void* original_for_bytes(void *_left) {
         right = c_car(left);
         buf[size++] = right->u_data.un_long;
         left = c_cdr(left);
-        if(left->em == EMPTY){
+        if (left->em == EMPTY) {
             break;
         }
     }
 
-    file_buffer = (char*)cross_calloc(BUF_SIZE, sizeof(char));
+    file_buffer = (char*)cross_calloc(1024, sizeof(char));
     memcpy(file_buffer, buf, size);
     result = new_storage(file_buffer, size);
     cross_free(file_buffer);
     return result;
-}
-
-void * original_for_longs(void * _left) {
-    type* left = primitive_empty;
-    type* res = primitive_empty;
-    type* present = primitive_empty;
-    char* response = NULL;     
-    char debug_inf[256] = "\0";
-    int storage_size = 0;
-    unsigned long* material = NULL;
-
-    left = c_car (_left);
-    if (left->em != LIST) {
-        cross_strcpy(debug_inf, "first para should be a LIST\r\n");
-        return new_debug(debug_inf, cross_strlen(debug_inf));
-    }
-
-    res = new_object();
-    res->em = STORAGE;
-    response = (char*)cross_calloc(BUF_SIZE, sizeof(char));
-
-    material = (unsigned long*)(response + sizeof(int));
-    for (present = left; present->em != EMPTY; present = c_cdr(present)) {
-        left = c_car(present);
-        if (left->em != UNLONG) continue;
-        *material = left->u_data.un_long;
-        material++;
-        storage_size++;
-    }
-    if (0 == storage_size) {
-        cross_strcpy(debug_inf, "storage_size is zero\r\n");
-        return new_debug(debug_inf, cross_strlen(debug_inf));
-    }
-    
-    storage_size = storage_size * sizeof(unsigned long) / sizeof(char) + 1 + sizeof(int);
-    *(int*)response = storage_size - sizeof(int);
-    res->u_data.a_storage = response;
-    return res;
 }
 
 int comp(const void* a, const void* b) {
@@ -2357,15 +2238,15 @@ void * original_qsort(void * _left) {
         return new_debug(debug_inf, cross_strlen(debug_inf));
     }
 
-    response = left->u_data.a_storage ;
-    storage_size = *(int*)response  + sizeof(int);
-    storage_size = (storage_size - 1 -  sizeof(int)) /(sizeof(unsigned long)/sizeof(char));    
-    material = (unsigned long*)(response + sizeof(int));
+    response = left->u_data.a_storage;
+    storage_size = virtual_size(*(int*)response);
+    material = (unsigned long*)data_ptr(response);
     qsort(material, storage_size, sizeof(unsigned long), comp);
     return c_normal_copy(left);
 }
 
 void * var_type(char * name);
+
 
 void * original_bsearch(void * _left) {
     type* left = primitive_empty;
@@ -2389,10 +2270,8 @@ void * original_bsearch(void * _left) {
     }    
 
     response = left->u_data.a_storage ;
-    storage_size = *(int*)response  + sizeof(int);
-    storage_size = (storage_size - 1 -  sizeof(int)) /(sizeof(unsigned long)/sizeof(char));    
-    material = (unsigned long*)(response + sizeof(int));
-
+    storage_size = virtual_size(*(int*)response);
+    material = (unsigned long*)data_ptr(response);    
     key = right->u_data.un_long;
     status = bsearch(&key, material, storage_size, sizeof(unsigned long), comp);
     if (NULL == status) {
@@ -2403,7 +2282,254 @@ void * original_bsearch(void * _left) {
     }
 }
 
-void * original_idx_longs(void * _left) {
+void * add_helper(void * _left, int mode) {
+    type* left = primitive_empty;
+    type* right = primitive_empty;
+    type* res = primitive_empty;        
+    char debug_inf[256] = "\0";
+    entry result;
+    type* present = primitive_empty;
+    char* response = NULL;     
+    int storage_size = 0;
+    int alloc_size = 0;
+    unsigned long* material = NULL;
+    int first = 0;
+
+    left = c_car(_left);
+    if (left->em != STORAGE) {
+        cross_strcpy(debug_inf, "first para should be a STORAGE\r\n");
+        return new_debug(debug_inf, cross_strlen(debug_inf));
+    }
+    result = lookup(csp(left),
+                    css(left),                    
+                    global_var);
+    if (result.u_data._expr == NULL) {
+        first = 1;
+        res = new_storage(NULL, ARABIC - 1 - sizeof(int));
+    }
+    else {
+        res = result.u_data._expr;
+    }
+
+    if (res->em != STORAGE) {
+        cross_snprintf(debug_inf, 256, "%s first value should be a STORAGE\r\n", csp(left));
+        return new_debug(debug_inf, cross_strlen(debug_inf));
+    }
+    response = res->u_data.a_storage;
+    material = (unsigned long*)data_ptr(response);
+    storage_size = virtual_size(*(int*)response);
+    
+    right = c_cadr(_left);
+    if (mode == 0) {
+        *(material + storage_size) = right->u_data.un_long;
+    }
+    else if (mode == 1) {
+        c_normal_copy(right);
+        *(material + storage_size) = (unsigned long)right;
+    }
+    storage_size++;
+    *(int*)response = real_size(storage_size);
+    alloc_size = *((int*)response - 1);
+    if (first == 1) {
+        assign(csp(left), css(left), res, NULL, &global_var);        
+    }
+    else if (*(int*)response > (int)(0.8 * alloc_size)) {
+        cross_fprintf(stderr, "%s maybe overflow alloc_size:%d\r\n", csp(left), alloc_size);
+        if (0 == alloc_size) {
+            cross_fprintf(stderr, "%s impossible BUF\r\n", csp(left));
+        }
+        res->u_data.a_storage = cross_calloc(2 * alloc_size, sizeof(char));
+        memcpy(res->u_data.a_storage,
+               response,
+               storage_size * sizeof(unsigned long) + sizeof(int));
+        cross_free(response);
+        global_var = freeentry(csp(left), css(left),
+                               global_var);
+        assign(csp(left), css(left), res, NULL, &global_var);
+    }
+    return c_normal_copy(left);
+}
+
+void * original_add_long(void * _left) {
+    return add_helper(_left, 0);
+}
+
+void * original_add_ptr(void * _left) {
+    return add_helper(_left, 1);
+}
+
+void * remove_top_helper(void * _left, int mode, int style) {
+    type* left = primitive_empty;
+    type* right = primitive_empty;
+    type* res = primitive_empty;        
+    char debug_inf[256] = "\0";
+    entry result;
+    type * mid_expr = NULL;
+    type* present = primitive_empty;
+    char* response = NULL;     
+    int storage_size = 0;
+    unsigned long* material = NULL;
+
+    left = c_car (_left);
+    if (left->em != STORAGE) {
+        cross_strcpy(debug_inf, "first para should be a STORAGE\r\n");
+        return new_debug(debug_inf, cross_strlen(debug_inf));
+    }
+    result = lookup(csp(left),
+                    css(left),                    
+                    global_var);
+    if (result.u_data._expr == NULL) {
+        cross_strcpy(debug_inf, "first value should be a STORAGE\r\n");
+        return new_debug(debug_inf, cross_strlen(debug_inf));        
+    }
+    res = result.u_data._expr;
+    if (res->em != STORAGE) {
+        cross_strcpy(debug_inf, "first value should be a STORAGE\r\n");
+        return new_debug(debug_inf, cross_strlen(debug_inf));
+    }
+
+    response = res->u_data.a_storage;
+    material = (unsigned long*)data_ptr(response);
+    storage_size = virtual_size(*(int*)response);    
+    if (storage_size >= 1) {
+        if (mode == 0) {
+            right = long_type(material[storage_size - 1]);
+        }
+        else if (mode == 1) {
+            right = (void*)material[storage_size - 1];
+        }
+        else {
+            right = primitive_empty;
+        }
+
+        if (style == 0) {
+            storage_size--;
+            storage_size = storage_size * sizeof(unsigned long) / sizeof(char) + 1 + sizeof(int);
+            *(int*)response = storage_size - sizeof(int);                    
+        }
+    }
+    else {
+        right = primitive_empty;        
+    }
+    return right;
+}
+
+void * original_remove_long(void * _left) {
+    return remove_top_helper(_left, 0, 0);
+}
+
+void * original_remove_ptr(void * _left) {
+    return remove_top_helper(_left, 1, 0);
+}
+
+void * original_top_long(void * _left) {
+    return remove_top_helper(_left, 0, 0);
+}
+
+void * original_top_ptr(void * _left) {
+    return remove_top_helper(_left, 1, 0);
+}
+
+void * original_exchange(void * _left) {
+    type* left = primitive_empty;
+    type* right = primitive_empty;
+    type* res = primitive_empty;        
+    char debug_inf[256] = "\0";
+    entry result;
+    type * mid_expr = NULL;
+    type* present = primitive_empty;
+    char* response = NULL;     
+    int storage_size = 0;
+    unsigned long* material = NULL;
+    unsigned long tmp = 0;
+
+    left = c_car (_left);
+    if (left->em != STORAGE) {
+        cross_strcpy(debug_inf, "first para should be a STORAGE\r\n");
+        return new_debug(debug_inf, cross_strlen(debug_inf));
+    }
+    result = lookup(csp(left),
+                    css(left),                    
+                    global_var);
+    if (result.u_data._expr == NULL) {
+        cross_strcpy(debug_inf, "first value should be a STORAGE\r\n");
+        return new_debug(debug_inf, cross_strlen(debug_inf));        
+    }
+    res = result.u_data._expr;
+    if (res->em != STORAGE) {
+        cross_strcpy(debug_inf, "first value should be a STORAGE\r\n");
+        return new_debug(debug_inf, cross_strlen(debug_inf));
+    }
+
+    response = res->u_data.a_storage;
+    material = (unsigned long*)data_ptr(response);
+    storage_size = virtual_size(*(int*)response);        
+    if (storage_size >= 2) {
+        tmp = material[storage_size - 1];
+        material[storage_size - 1] = material[storage_size - 2];
+        material[storage_size - 2] = tmp;
+    }
+    return primitive_empty;
+}
+
+void * original_geq(void * _left) {
+    type* left = primitive_empty;
+    type* right = primitive_empty;    
+    char debug_inf[256] = "\0";
+    entry result;
+
+    left = c_car (_left);
+    if (left->em == EMPTY) {
+        return primitive_empty;        
+    }
+    
+    if (left->em != STORAGE) {
+        cross_strcpy(debug_inf, "first para should be a STORAGE\r\n");
+        return new_debug(debug_inf, cross_strlen(debug_inf));
+    }    
+    result = lookup(csp(left),
+                    css(left),                    
+                    global_var);
+    if (result.u_data._expr == NULL) {
+        return primitive_empty;
+    } 
+    else {
+        return c_normal_copy(result.u_data._expr);
+    }
+}
+
+void * original_seq(void * _left) {
+    type* left = primitive_empty;
+    type* right = primitive_empty;    
+    char debug_inf[256] = "\0";
+    entry result;
+    type * mid_expr = NULL;
+
+    left = c_car (_left);
+    if (left->em != STORAGE) {
+        cross_strcpy(debug_inf, "first para should be a STORAGE\r\n");
+        return new_debug(debug_inf, cross_strlen(debug_inf));
+    }
+    right = c_cadr(_left);
+    result = lookup(csp(left),
+                    css(left),                    
+                    global_var);
+    mid_expr = result.u_data._expr;
+    if (mid_expr != NULL) {
+        gc(mid_expr);
+        global_var = freeentry(csp(left), css(left),
+                               global_var);
+    }
+
+    assign(csp(left),
+           css(left),
+           c_normal_copy(right),
+           NULL,
+           &global_var);
+    return c_normal_copy(left);
+}
+
+void * idx_helper(void * _left, int mode) {
     type* left = primitive_empty;
     type* right = primitive_empty;    
     type* present = primitive_empty;
@@ -2424,40 +2550,29 @@ void * original_idx_longs(void * _left) {
     }    
 
     response = left->u_data.a_storage;
-    storage_size = *(int*)response  + sizeof(int);
-    storage_size = (storage_size - 1 -  sizeof(int)) /(sizeof(unsigned long)/sizeof(char));
-
+    material = (unsigned long*)data_ptr(response);
+    storage_size = virtual_size(*(int*)response);            
     if (right->u_data.un_long >= storage_size) {
         cross_strcpy(debug_inf, "second para too big\r\n");
         return new_debug(debug_inf, cross_strlen(debug_inf));        
     }
-    material = (unsigned long*)(response + sizeof(int));
-    return long_type(material[right->u_data.un_long]);
+    if (mode== 0) {
+        return long_type(material[right->u_data.un_long]);
+    }
+    else if (mode == 1) {
+        return c_normal_copy((void*)material[right->u_data.un_long]);
+    }
+    else {
+        return primitive_empty;
+    }
 }
 
-void* original_dump_longs(void * _left) {
-    type* left = primitive_empty;
-    type* outcome = primitive_empty;    
-    char* response = NULL;     
-    char debug_inf[256] = "\0";
-    int storage_size = 0;
-    unsigned long* material = NULL;
-    int i = 0;
+void * original_idx_longs(void * _left) {
+    return idx_helper(_left, 0);
+}
 
-    left = c_car (_left);
-    if (left->em != STORAGE) {
-        cross_strcpy(debug_inf, "first para should be a STORAGE\r\n");
-        return new_debug(debug_inf, cross_strlen(debug_inf));
-    }
-
-    response = left->u_data.a_storage;
-    storage_size = *(int*)response  + sizeof(int);
-    storage_size = (storage_size - 1 -  sizeof(int)) /(sizeof(unsigned long)/sizeof(char));
-    material = (unsigned long*)(response + sizeof(int));
-    for (i = 0; i < storage_size; i++) {
-        outcome = c_append(outcome, c_cons(long_type(material[i]), primitive_empty));
-    }
-    return outcome;
+void * original_idx_ptrs(void * _left) {
+    return idx_helper(_left, 1);
 }
 
 void * original_size_longs(void * _left) {
@@ -2469,14 +2584,17 @@ void * original_size_longs(void * _left) {
     unsigned long* material = NULL;
 
     left = c_car (_left);
+    if (left->em == EMPTY) {
+        return long_type(0);
+    }
+
     if (left->em != STORAGE) {
         cross_strcpy(debug_inf, "first para should be a STORAGE\r\n");
         return new_debug(debug_inf, cross_strlen(debug_inf));
     }
 
     response = left->u_data.a_storage;
-    storage_size = *(int*)response  + sizeof(int);
-    storage_size = (storage_size - 1 -  sizeof(int)) /(sizeof(unsigned long)/sizeof(char));
+    storage_size = virtual_size(*(int*)response);                    
     return long_type(storage_size);
 }
 
@@ -2485,35 +2603,24 @@ void* original_funload(void * _left) {
     type * present = c_cadr(_left);
     type* outcome = primitive_empty;
     char * material = NULL;
-    char* filename = NULL;
     int len = 0;
     char debug_inf[256] = "\0";
 
-    if(left->em == VAR){
-        filename = left->u_data.s_var;
-    }
-    else if(left->em == STORAGE){
-        filename = left->u_data.a_storage + sizeof(int);
-    }
-    else {
-        cross_strcpy(debug_inf, "1st --> a VAR or STORAGE\r\n");
+    if (left->em != STORAGE) {
+        cross_strcpy(debug_inf, "1st --> a STORAGE\r\n");
         return new_debug(debug_inf, cross_strlen(debug_inf));
     }
 
-    if(present->em == VAR){
-        material = present->u_data.s_var;
-        len = cross_strlen(material);
-    }
-    else if(present->em == STORAGE){
-        material = present->u_data.a_storage + sizeof(int);
-        len = *(int*)present->u_data.a_storage - 1;
+    if (present->em == STORAGE) {
+        material = csp(present);
+        len = css(present);
     }
     else{
-        cross_sprintf(debug_inf, "2st --> VAR or STORAGE type\r\n");
+        cross_sprintf(debug_inf, "2st --> STORAGE type\r\n");
         return new_debug(debug_inf, cross_strlen(debug_inf));
     }
 
-    cross_fwrite(filename, material, sizeof(char), len);  /*some input too long, so use BUF_SIZE instead of 1024*/
+    cross_fwrite(csp(left), material, sizeof(char), len);
     outcome = c_copy_atom(present);
     return outcome;
 }
@@ -2525,17 +2632,11 @@ void * original_ftell(void * _left) {
     int size = 0;
 
     left = c_car (_left);
-    if(left->em == VAR){
-        material = left->u_data.s_var;
-    }
-    else if(left->em == STORAGE){
-        material = left->u_data.a_storage + sizeof(int);
-    }
-    else {
-        cross_strcpy(debug_inf, "1st should be a VAR or STORAGE\r\n");
+    if (left->em != STORAGE) {
+        cross_strcpy(debug_inf, "1st should be a STORAGE\r\n");
         return new_debug(debug_inf, cross_strlen(debug_inf));
     }
-    size = cross_ftell(material);
+    size = cross_ftell(csp(left));
     if (size == -1) {
         return primitive_empty;   
     }
@@ -2546,39 +2647,26 @@ void * original_ftell(void * _left) {
 
 void * original_fopen(void * _left) {
     type* left = primitive_empty;
+    type* right = primitive_empty;    
     type* present = primitive_empty;
     char debug_inf[256] = "\0";
-    char* material = NULL;
-    char* mode = NULL;
     FILE* output = NULL;
 
     left = c_car (_left);
-    if(left->em == VAR){
-        material = left->u_data.s_var;
-    }
-    else if(left->em == STORAGE){
-        material = left->u_data.a_storage + sizeof(int);
-    }
-    else {
-        cross_strcpy(debug_inf, "1st should be a VAR or STORAGE\r\n");
+    if (left->em != STORAGE) {
+        cross_strcpy(debug_inf, "1st should be a STORAGE\r\n");
         return new_debug(debug_inf, cross_strlen(debug_inf));
     }
 
-    left = c_cadr (_left);
-    if(left->em == VAR){
-        mode = left->u_data.s_var;
-    }
-    else if(left->em == STORAGE){
-        mode = left->u_data.a_storage + sizeof(int);
-    }
-    else {
-        cross_strcpy(debug_inf, "2st should be a VAR or STORAGE\r\n");
+    right = c_cadr (_left);
+    if (right->em != STORAGE) {
+        cross_strcpy(debug_inf, "2st should be a STORAGE\r\n");
         return new_debug(debug_inf, cross_strlen(debug_inf));
     }
 
-    output = fopen(material, mode);
+    output = fopen(csp(left), csp(right));
     if (output == NULL) {
-        cross_snprintf(debug_inf, 256, "file %s doesn't exist\r\n", material);
+        cross_snprintf(debug_inf, 256, "file doesn't exist\r\n");
         return new_debug(debug_inf, cross_strlen(debug_inf));
     }
     present = (type*)new_object();
@@ -2595,7 +2683,7 @@ void * original_fwrite(void * _left) {
     size_t size = 0;
 
     left = c_car (_left);
-    if(left->em == STREAM){
+    if (left->em == STREAM) {
         output = (FILE*)left->u_data.un_long;
     }
     else {
@@ -2604,20 +2692,12 @@ void * original_fwrite(void * _left) {
     }
 
     left = c_cadr (_left);
-    if(left->em == VAR){
-        material = left->u_data.s_var;
-        size = strlen(material);
-    }
-    else if(left->em == STORAGE){
-        material = left->u_data.a_storage + sizeof(int);
-        size = *(int*)left->u_data.a_storage - 1;
-    }
-    else {
-        cross_strcpy(debug_inf, "2st should be a VAR or STORAGE\r\n");
+    if (left->em != STORAGE) {
+        cross_strcpy(debug_inf, "2st should be a STORAGE\r\n");
         return new_debug(debug_inf, cross_strlen(debug_inf));
     }
 
-    fwrite(material, 1, size, output);
+    fwrite(csp(left), 1, css(left), output);
     return primitive_empty;
 }
 
@@ -2627,10 +2707,10 @@ void * original_fread(void * _left) {
     char debug_inf[256] = "\0";
     FILE* output = NULL;
     size_t size = 0;
-    char * response = (char*) cross_calloc(BUF_SIZE, sizeof(char));
+    char * response = (char*) cross_calloc(1024, sizeof(char));
 
     left = c_car (_left);
-    if(left->em == STREAM){
+    if (left->em == STREAM) {
         output = (FILE*)left->u_data.un_long;
     }
     else {
@@ -2639,7 +2719,7 @@ void * original_fread(void * _left) {
     }
 
     left = c_cadr (_left);
-    if(left->em != UNLONG){
+    if (left->em != UNLONG) {
         cross_strcpy(debug_inf, "2st should be a UNLONG\r\n");
         return new_debug(debug_inf, cross_strlen(debug_inf));
     }
@@ -2659,7 +2739,7 @@ void * original_feof(void * _left) {
     FILE* output = NULL;
 
     left = c_car (_left);
-    if(left->em == STREAM){
+    if (left->em == STREAM) {
         output = (FILE*)left->u_data.un_long;
     }
     else {
@@ -2667,7 +2747,7 @@ void * original_feof(void * _left) {
         return new_debug(debug_inf, cross_strlen(debug_inf));
     }
 
-    if(!feof(output)){
+    if (!feof(output)) {
         present = long_type(0);
     }
     else{
@@ -2681,10 +2761,10 @@ void * original_fgets(void * _left) {
     type* present = primitive_empty;
     char debug_inf[256] = "\0";
     FILE* output = NULL;
-    char * response = (char*) cross_calloc(BUF_SIZE, sizeof(char));
+    char * response = (char*)cross_calloc(1024, sizeof(char));
 
     left = c_car (_left);
-    if(left->em == STREAM){
+    if (left->em == STREAM) {
         output = (FILE*)left->u_data.un_long;
     }
     else {
@@ -2692,7 +2772,7 @@ void * original_fgets(void * _left) {
         cross_free(response);
         return new_debug(debug_inf, cross_strlen(debug_inf));
     }
-    fgets(response, BUF_SIZE, output);
+    fgets(response, 1024, output);
     present = new_storage(response, cross_strlen(response));
     cross_free(response);
     return present;
@@ -2704,7 +2784,7 @@ void * original_fclose(void * _left) {
     FILE* output = NULL;
 
     left = c_car (_left);
-    if(left->em == STREAM){
+    if (left->em == STREAM) {
         output = (FILE*)left->u_data.un_long;
     }
     else {
@@ -2729,18 +2809,12 @@ void * original_primitive(void * _left) {
     char * material = NULL;
     char debug_inf[256] = "\0";
   
-    if(left->em == VAR){
-        material = left->u_data.s_var;
-    }
-    else if(left->em == STORAGE){
-        material = left->u_data.a_storage + sizeof(int);
-    }
-    else {
-        cross_strcpy(debug_inf, "1st should be a VAR or STORAGE\r\n");
+    if (left->em != STORAGE) {
+        cross_strcpy(debug_inf, "1st should be a STORAGE\r\n");
         return new_debug(debug_inf, cross_strlen(debug_inf));
     }
 
-    fun = (type*)fun_type(material);
+    fun = (type*)fun_type(csp(left));
     if (fun) {
     }
     else{
@@ -2756,24 +2830,17 @@ void * original_primitivep(void * _left) {
     type * outcome;
     type * left = (type *) c_car(_left);
     /*   follow code is different with the lambdap, left->em have not this assumption,
-         because you can write the code ( primitivep  'cons ...)  then  left->em is VAR
+         because you can write the code ( primitivep  'cons ...)  then  left->em is STORAGE
          also  you can  fetch  the left value from  a list , then  at  the parse  phrase the em  would be determined as  FUN, so now we just do  nothing.
-         if (fun_type ((char  * )(left->u_data.s_var))) */
+    */
 
     char * material = NULL;
-  
-    if(left->em == VAR){
-        material = left->u_data.s_var;
-    }
-    else if(left->em == STORAGE){
-        material = left->u_data.a_storage + sizeof(int);
-    }
-    else{
+    if (left->em != STORAGE) {
         outcome = long_type(0);
         return outcome;
     }
 
-    outcome = (type*)fun_type(material);
+    outcome = (type*)fun_type(csp(left));
     if (outcome) {
         gc_atom(outcome);
         outcome = long_type(1);
@@ -2814,22 +2881,6 @@ void * withdraw(void * _left) {
     return primitive_empty;
 }
 
-void * raw_withdraw(void) {
-    raw_wraptype * handle = NULL;
-    raw_mem_manager_reserved = raw_primitive_reserved->mem_next;
-
-    while (raw_mem_manager_reserved) {
-        handle = raw_mem_manager_reserved->mem_next;
-        raw_mem_manager_used->mem_next = raw_mem_manager_reserved;
-        raw_mem_manager_used = raw_mem_manager_reserved;
-        raw_mem_manager_reserved = handle;
-    }
-
-    raw_mem_manager_reserved = raw_primitive_reserved;
-    raw_primitive_reserved->mem_next = NULL;
-    return NULL;
-}
-
 void * original_big(void * _left) {
     int outcome, a = 0, b = 0; 
     char debug_inf[256] = "\0";
@@ -2852,7 +2903,7 @@ void * original_big(void * _left) {
         b = ((type *)right)->u_data.a_char;
     }
     outcome = a - b;
-    if (outcome > 0){
+    if (outcome > 0) {
         return long_type(1);
     }
     else{
@@ -2861,17 +2912,17 @@ void * original_big(void * _left) {
 }
 
 int power(int x, int n) {
-    if(0 == n) {
+    if (0 == n) {
         return 1;
     }
-    else if(1 == n) {
+    else if (1 == n) {
         return x;
     }
-    else if(2 == n) {
+    else if (2 == n) {
         return x * x;
     }
 
-    if(0 == (n % 2)) {
+    if (0 == (n % 2)) {
         return power(power(x, n /2), 2);
     }
     else {
@@ -2988,10 +3039,8 @@ void * original_charp(void * _left) {
     char* p = NULL;
     int len = 0;
 
-    if (left->em == VAR) {
-        p = (char *)(left->u_data.s_var);
-        len = cross_strlen(p);
-        if (len != ARABIC) {
+    if (left->em == STORAGE) {
+        if (css(left) != ARABIC) {
             outcome = long_type(1);
         }
         else {
@@ -3134,11 +3183,11 @@ typedef struct dictIterator {
 /* ------------------------------- Macros ------------------------------------*/
 #define dictFreeEntryVal(d, entry)    if ((d)->type->valDestructor)   (d)->type->valDestructor((d)->privdata, (entry)->val)
 
-#define dictSetHashVal(d, entry, _val_) do {     if ((d)->type->valDup)      entry->val = (d)->type->valDup((d)->privdata, _val_);     else         entry->val = (_val_); } while(0)
+#define dictSetHashVal(d, entry, _val_) do {     if ((d)->type->valDup)      entry->val = (d)->type->valDup((d)->privdata, _val_);     else         entry->val = (_val_); } while (0)
 
 #define dictFreeEntryKey(d, entry)     if ((d)->type->keyDestructor)         (d)->type->keyDestructor((d)->privdata, (entry)->key)
 
-#define dictSetHashKey(d, entry, _key_) do {     if ((d)->type->keyDup)         entry->key = (d)->type->keyDup((d)->privdata, _key_);     else         entry->key = (_key_); } while(0)
+#define dictSetHashKey(d, entry, _key_) do {     if ((d)->type->keyDup)         entry->key = (d)->type->keyDup((d)->privdata, _key_);     else         entry->key = (_key_); } while (0)
 
 #define dictCompareHashKeys(d, key1, key2)     (((d)->type->keyCompare) ?         (d)->type->keyCompare((d)->privdata, key1, key2) :         (key1) == (key2))
 
@@ -3308,7 +3357,7 @@ int dictExpand(dict *d, unsigned long size)
 int dictRehash(dict *d, int n) {
     if (!dictIsRehashing(d)) return 0;
 
-    while(n--) {
+    while (n--) {
         dictEntry *de, *nextde;
 
         /* Check if we already rehashed the whole table... */
@@ -3322,10 +3371,10 @@ int dictRehash(dict *d, int n) {
 
         /* Note that rehashidx can't overflow as we are sure there are more
          * elements because ht[0].used != 0 */
-        while(d->ht[0].table[d->rehashidx] == NULL) d->rehashidx++;
+        while (d->ht[0].table[d->rehashidx] == NULL) d->rehashidx++;
         de = d->ht[0].table[d->rehashidx];
         /* Move all the keys in this bucket from the old to the new hash HT */
-        while(de) {
+        while (de) {
             unsigned int h;
 
             nextde = de->next;
@@ -3423,7 +3472,7 @@ static int dictGenericDelete(dict *d, const void *key, int nofree)
         idx = h & d->ht[table].sizemask;
         he = d->ht[table].table[idx];
         prevHe = NULL;
-        while(he) {
+        while (he) {
             if (dictCompareHashKeys(d, key, he->key)) {
                 /* Unlink the element from the list */
                 if (prevHe)
@@ -3464,7 +3513,7 @@ int _dictClear(dict *d, dictht *ht)
         dictEntry *he, *nextHe;
 
         if ((he = ht->table[i]) == NULL) continue;
-        while(he) {
+        while (he) {
             nextHe = he->next;
             dictFreeEntryKey(d, he);
             dictFreeEntryVal(d, he);
@@ -3499,7 +3548,7 @@ dictEntry *dictFind(dict *d, const void *key)
     for (table = 0; table <= 1; table++) {
         idx = h & d->ht[table].sizemask;
         he = d->ht[table].table[idx];
-        while(he) {
+        while (he) {
             if (dictCompareHashKeys(d, key, he->key))
                 return he;
             he = he->next;
@@ -3591,13 +3640,13 @@ dictEntry *dictGetRandomKey(dict *d)
             h = cross_rand() % (d->ht[0].size+d->ht[1].size);
             he = (h >= d->ht[0].size) ? d->ht[1].table[h - d->ht[0].size] :
                 d->ht[0].table[h];
-        } while(he == NULL);
+        } while (he == NULL);
     } 
     else {
         do {
             h = cross_rand() & d->ht[0].sizemask;
             he = d->ht[0].table[h];
-        } while(he == NULL);
+        } while (he == NULL);
     }
 
     /* Now we found a non empty bucket, but it is a linked
@@ -3606,13 +3655,13 @@ dictEntry *dictGetRandomKey(dict *d)
      * select a random index. */
     listlen = 0;
     orighe = he;
-    while(he) {
+    while (he) {
         he = he->next;
         listlen++;
     }
     listele = cross_rand() % listlen;
     he = orighe;
-    while(listele--) he = he->next;
+    while (listele--) he = he->next;
     return he;
 }
 
@@ -3647,7 +3696,7 @@ static unsigned long _dictNextPower(unsigned long size)
     unsigned long i = DICT_HT_INITIAL_SIZE;
 
     /*    if (size >= UNLONG_MAX) return UNLONG_MAX;*/
-    while(1) {
+    while (1) {
         if (i >= size)
             return i;
         i *= 2;
@@ -3674,7 +3723,7 @@ static int _dictKeyIndex(dict *d, const void *key)
         idx = h & d->ht[table].sizemask;
         /* Search if this slot does not already contain the given key */
         he = d->ht[table].table[idx];
-        while(he) {
+        while (he) {
             if (dictCompareHashKeys(d, key, he->key))
                 return -1;
             he = he->next;
@@ -3714,7 +3763,7 @@ static void _dictPrintStatsHt(dictht *ht) {
         /* For each hash entry on this slot... */
         chainlen = 0;
         he = ht->table[i];
-        while(he) {
+        while (he) {
             chainlen++;
             he = he->next;
         }
@@ -3834,18 +3883,12 @@ type* hashTypeGet(type *entry, type *key, unsigned char **v, unsigned int *vlen)
     char debug_inf[256] = "\0";
     dictEntry* de;
 
-    if(key->em == VAR){
-        key_string = key->u_data.s_var;
-    }
-    else if(key->em == STORAGE){
-        key_string = key->u_data.a_storage + sizeof(int);
-    }
-    else {
-        cross_snprintf(debug_inf, 256, "hashTypeGet key value should be a VAR or STORAGE\r\n");
+    if (key->em != STORAGE) {
+        cross_snprintf(debug_inf, 256, "hashTypeGet key value should be a STORAGE\r\n");
         return new_debug(debug_inf, strlen(debug_inf));
     }
 
-    de = dictFind((dict*)(entry->u_data.un_long), key_string);
+    de = dictFind((dict*)(entry->u_data.un_long), csp(key));
     if (de == NULL) {
         return NULL;
     }
@@ -3859,19 +3902,13 @@ void* hashTypeSet(type * entry, type *key, type *value) {
     char * key_string = NULL;
     char debug_inf[256] = "\0";
 
-    if(key->em == VAR){
-        key_string = key->u_data.s_var;
-    }
-    else if(key->em == STORAGE){
-        key_string = key->u_data.a_storage + sizeof(int);
-    }
-    else{
+    if (key->em != STORAGE) {
         gc(value);
-        cross_snprintf(debug_inf, 256, "hashTypeSet 1st should be a VAR or STORAGE\r\n");
+        cross_snprintf(debug_inf, 256, "hashTypeSet 1st should be a STORAGE\r\n");
         return new_debug(debug_inf, strlen(debug_inf));
     }
 
-    if (dictReplace((dict*)(entry->u_data.un_long), key_string, value)) {
+    if (dictReplace((dict*)(entry->u_data.un_long), csp(key), value)) {
     } 
     else {
         update = 1;
@@ -3895,16 +3932,9 @@ int htNeedsResize(dict *dict) {
 int hashTypeDelete(type * entry, type * key) {
     int deleted = 0;
     char * key_string = NULL;
-    if(key->em == VAR){
-        key_string = key->u_data.s_var;
+    if (key->em != STORAGE) {
     }
-    else if(key->em == STORAGE){
-        key_string = key->u_data.a_storage + sizeof(int);
-    }
-    else{
-    }
-
-    deleted = dictDelete((dict*)entry->u_data.un_long, key_string) == DICT_OK;
+    deleted = dictDelete((dict*)entry->u_data.un_long, csp(key)) == DICT_OK;
     /* Always check if the dictionary needs a resize after a delete. */
     if (deleted && htNeedsResize((dict*)entry->u_data.un_long)) dictResize((dict*)entry->u_data.un_long);
 
@@ -4000,24 +4030,18 @@ void * original_dset(void  * _left) {
         return new_debug(debug_inf, strlen(debug_inf));
     }
 
-    if(key->em == VAR){
-        key_string = key->u_data.s_var;
-    }
-    else if(key->em == STORAGE){
-        key_string = key->u_data.a_storage + sizeof(int);
-    }
-    else {
-        cross_snprintf(debug_inf, 256, "2st should be a VAR or STORAGE\r\n");
+    if (key->em != STORAGE) {
+        cross_snprintf(debug_inf, 256, "2st should be a STORAGE\r\n");
         return new_debug(debug_inf, strlen(debug_inf));
     }
 
-    if ((table = hashTypeLookupWriteOrCreate(dic, key_string)) == NULL) {
+    if ((table = hashTypeLookupWriteOrCreate(dic, csp(key))) == NULL) {
         return outcome;    
     }
 
     outcome = hashTypeSet(table, second, c_normal_copy(third));
     if (outcome->em == DEBUG) {
-        cross_snprintf(debug_inf, 1024, "call subprocess error:\r\n%s", outcome->u_data.a_storage + sizeof(int));
+        cross_snprintf(debug_inf, 1024, "call subprocess error:\r\n%s", csp(outcome));
         gc_atom(outcome);
         return new_debug(debug_inf, strlen(debug_inf));
     }
@@ -4042,18 +4066,12 @@ void * original_dget(void  * _left) {
         return new_debug(debug_inf, strlen(debug_inf));
     }
 
-    if(key->em == VAR){
-        key_string = key->u_data.s_var;
-    }
-    else if(key->em == STORAGE){
-        key_string = key->u_data.a_storage + sizeof(int);
-    }
-    else{
-        cross_snprintf(debug_inf, 256, "2st should be a VAR or STORAGE\r\n");
+    if (key->em != STORAGE) {
+        cross_snprintf(debug_inf, 256, "2st should be a STORAGE\r\n");
         return new_debug(debug_inf, strlen(debug_inf));
     }
 
-    if ((entry = lookupKey((dict*)dic->u_data.un_long, key_string)) == NULL ||
+    if ((entry = lookupKey((dict*)dic->u_data.un_long, csp(key))) == NULL ||
         entry->em != HASH) {
         return outcome;
     }
@@ -4064,7 +4082,7 @@ void * original_dget(void  * _left) {
     }
 
     if (outcome->em == DEBUG) {
-        cross_snprintf(debug_inf, 1024, "call subprocess error:\r\n%s", outcome->u_data.a_storage + sizeof(int));
+        cross_snprintf(debug_inf, 1024, "call subprocess error:\r\n%s", csp(outcome));
         gc_atom(outcome);
         return new_debug(debug_inf, strlen(debug_inf));
     }
@@ -4085,24 +4103,18 @@ void * original_ddel(void  * _left) {
         return new_debug(debug_inf, strlen(debug_inf));
     }
 
-    if(key->em == VAR){
-        key_string = key->u_data.s_var;
-    }
-    else if(key->em == STORAGE){
-        key_string = key->u_data.a_storage + sizeof(int);
-    }
-    else{
-        cross_snprintf(debug_inf, 256, "2st should be a VAR or STORAGE\r\n");
+    if (key->em != STORAGE) {
+        cross_snprintf(debug_inf, 256, "2st should be a STORAGE\r\n");
         return new_debug(debug_inf, strlen(debug_inf));
     }
 
-    if ((entry = lookupKey((dict*)dic->u_data.un_long, key_string)) == NULL ||
+    if ((entry = lookupKey((dict*)dic->u_data.un_long, csp(key))) == NULL ||
         entry->em == HASH) {
         return primitive_empty;
     }
 
-    while(1){
-        if(second->em == EMPTY)break;
+    while (1) {
+        if (second->em == EMPTY)break;
         key = c_car(second);
         if (hashTypeDelete(entry, key)) {
             deleted++;
@@ -4128,18 +4140,12 @@ void * original_dlen(void  * _left) {
         return new_debug(debug_inf, strlen(debug_inf));
     }
 
-    if(key->em == VAR){
-        key_string = key->u_data.s_var;
-    }
-    else if(key->em == STORAGE){
-        key_string = key->u_data.a_storage + sizeof(int);
-    }
-    else {
-        cross_snprintf(debug_inf, 256, "2st should be a VAR or STORAGE\r\n");
+    if (key->em != STORAGE) {
+        cross_snprintf(debug_inf, 256, "2st should be a STORAGE\r\n");
         return new_debug(debug_inf, strlen(debug_inf));
     }
 
-    if ((entry = lookupKey((dict*)dic->u_data.un_long, key_string)) == NULL ||
+    if ((entry = lookupKey((dict*)dic->u_data.un_long, csp(key))) == NULL ||
         entry->em == HASH) {
         return primitive_empty;
     }
@@ -4208,7 +4214,7 @@ void listRelease(list *list)
 
     current = list->head;
     len = list->len;
-    while(len--) {
+    while (len--) {
         next = current->next;
         if (list->free) list->free(current->value);
         zfree(current);
@@ -4402,7 +4408,7 @@ list *listDup(list *orig)
     copy->free = orig->free;
     copy->match = orig->match;
     iter = listGetIterator(orig, AL_START_HEAD);
-    while((node = listNext(iter)) != NULL) {
+    while ((node = listNext(iter)) != NULL) {
         void *value;
 
         if (copy->dup) {
@@ -4439,7 +4445,7 @@ listNode *listSearchKey(list *list, void *key)
     listNode *node;
 
     iter = listGetIterator(list, AL_START_HEAD);
-    while((node = listNext(iter)) != NULL) {
+    while ((node = listNext(iter)) != NULL) {
         if (list->match) {
             if (list->match(node->value, key)) {
                 listReleaseIterator(iter);
@@ -4468,11 +4474,11 @@ listNode *listIndex(list *list, int index) {
     if (index < 0) {
         index = (-index)-1;
         n = list->tail;
-        while(index-- && n) n = n->prev;
+        while (index-- && n) n = n->prev;
     } 
     else {
         n = list->head;
-        while(index-- && n) n = n->next;
+        while (index-- && n) n = n->next;
     }
     return n;
 }
@@ -4539,19 +4545,13 @@ void *  pushGenericCommand(void  *_left, int where) {
         return new_debug(debug_inf, strlen(debug_inf));
     }
 
-    if(first->em == VAR){
-        key = first->u_data.s_var;
-    }
-    else if(first->em == STORAGE){
-        key = first->u_data.a_storage + sizeof(int);
-    }
-    else{
-        cross_snprintf(debug_inf, 256, "pushGenericCommand 2st should be a VAR or STORAGE\r\n");
+    if (first->em != STORAGE) {
+        cross_snprintf(debug_inf, 256, "pushGenericCommand 2st should be a STORAGE\r\n");
         gc(_left);
         return new_debug(debug_inf, strlen(debug_inf));
     }
 
-    if ((entry = listTypeLookupWriteOrCreate(dic, key)) == NULL){
+    if ((entry = listTypeLookupWriteOrCreate(dic, csp(first))) == NULL) {
         gc(_left);
         return primitive_empty;
     }
@@ -4565,7 +4565,7 @@ void * original_rpush(void  *_left) {
     char debug_inf[256] = "\0";
     type* outcome = pushGenericCommand(_left, REDIS_TAIL);
     if (outcome->em == DEBUG) {
-        cross_snprintf(debug_inf, 1024, "call subprocess error:%s", outcome->u_data.a_storage + sizeof(int));
+        cross_snprintf(debug_inf, 1024, "call subprocess error:%s", csp(outcome));
         gc_atom(outcome);
         return new_debug(debug_inf, strlen(debug_inf));
     }
@@ -4576,7 +4576,7 @@ void * original_lpush(void  *_left) {
     char debug_inf[256] = "\0";
     type* outcome = pushGenericCommand(_left, REDIS_HEAD);
     if (outcome->em == DEBUG) {
-        cross_snprintf(debug_inf, 1024, "call subprocess error:%s", outcome->u_data.a_storage + sizeof(int));
+        cross_snprintf(debug_inf, 1024, "call subprocess error:%s", csp(outcome));
         gc_atom(outcome);
         return new_debug(debug_inf, strlen(debug_inf));
     }
@@ -4596,18 +4596,12 @@ void* original_llen(void *_left) {
         return new_debug(debug_inf, strlen(debug_inf));
     }
 
-    if(key->em == VAR){
-        key_string = key->u_data.s_var;
-    }
-    else if(key->em == STORAGE){
-        key_string = key->u_data.a_storage + sizeof(int);
-    }
-    else {
-        cross_snprintf(debug_inf, 256, "2st should be a VAR or STORAGE\r\n");
+    if (key->em != STORAGE) {
+        cross_snprintf(debug_inf, 256, "2st should be a STORAGE\r\n");
         return new_debug(debug_inf, strlen(debug_inf));
     }
 
-    if ((entry = lookupKey((dict*)dic->u_data.un_long, key_string)) == NULL ||
+    if ((entry = lookupKey((dict*)dic->u_data.un_long, csp(key))) == NULL ||
         entry->em == REDISLIST) {
         return primitive_empty;
     }
@@ -4616,7 +4610,7 @@ void* original_llen(void *_left) {
     return outcome;
 }
 
-void* original_lrem(void* _left){
+void* original_lrem(void* _left) {
     type* dic = c_car(_left);
     type* first = c_cadr(_left);
     type* second = c_car(c_cddr(_left));
@@ -4634,18 +4628,12 @@ void* original_lrem(void* _left){
         return new_debug(debug_inf, strlen(debug_inf));
     }
 
-    if(first->em == VAR){
-        key = first->u_data.s_var;
-    }
-    else if(first->em == STORAGE){
-        key = first->u_data.a_storage + sizeof(int);
-    }
-    else{
-        cross_snprintf(debug_inf, 256, "2st should be a VAR or STORAGE\r\n");
+    if (first->em != STORAGE) {
+        cross_snprintf(debug_inf, 256, "2st should be a STORAGE\r\n");
         return new_debug(debug_inf, strlen(debug_inf));
     }
 
-    if ((entry = listTypeLookupWriteOrCreate(dic, key)) == NULL){
+    if ((entry = listTypeLookupWriteOrCreate(dic, csp(first))) == NULL) {
         return primitive_empty;
     }
 
@@ -4655,19 +4643,19 @@ void* original_lrem(void* _left){
     rangelen = (end - start) + 1;
 
     ln = listIndex((list*)entry->u_data.un_long, start);
-    while(rangelen--) {
-        if(second->em == UNLONG){
-            if(((type*)ln->value)->u_data.un_long == second->u_data.un_long){
+    while (rangelen--) {
+        if (second->em == UNLONG) {
+            if (((type*)ln->value)->u_data.un_long == second->u_data.un_long) {
                 listDelNode((list*)entry->u_data.un_long, ln);
             }
         }
-        else if(second->em == NET){
-            if(((type*)ln->value)->u_data.un_long == second->u_data.un_long){
+        else if (second->em == NET) {
+            if (((type*)ln->value)->u_data.un_long == second->u_data.un_long) {
                 listDelNode((list*)entry->u_data.un_long, ln);
             }
         }
-        else if(second->em == VAR){
-            if(!strcmp( ((type*)ln->value)->u_data.s_var, second->u_data.s_var)){
+        else if (second->em == STORAGE) {
+            if (!strcmp(csp(ln->value), csp(second))) {
                 listDelNode((list*)entry->u_data.un_long, ln);
             }
         }
@@ -4691,16 +4679,9 @@ void  * original_lindex(type  *_left) {
     listNode* ln;
 
     char * key_string = NULL;
-    if(key->em == VAR){
-        key_string = key->u_data.s_var;
+    if (key->em != STORAGE) {
     }
-    else if(key->em == STORAGE){
-        key_string = key->u_data.a_storage + sizeof(int);
-    }
-    else{
-    }
-
-    if ((obj = listTypeLookupWriteOrCreate(dic, key_string)) == NULL) {
+    if ((obj = listTypeLookupWriteOrCreate(dic, csp(key))) == NULL) {
         return primitive_empty;
     }
 
@@ -4724,16 +4705,10 @@ void * original_lset(type *_left) {
     int index = second->u_data.un_long;
     listNode* ln;
 
-    if(key->em == VAR){
-        key_string = key->u_data.s_var;
-    }
-    else if(key->em == STORAGE){
-        key_string = key->u_data.a_storage + sizeof(int);
-    }
-    else{
+    if (key->em != STORAGE) {
     }
 
-    if ((entry = listTypeLookupWriteOrCreate(dic, key_string)) == NULL){
+    if ((entry = listTypeLookupWriteOrCreate(dic, csp(key))) == NULL) {
         return primitive_empty;
     }
 
@@ -4759,18 +4734,12 @@ void * popGenericCommand(type  * _left, int where) {
         return new_debug(debug_inf, strlen(debug_inf));
     }
 
-    if(first->em == VAR){
-        key = first->u_data.s_var;
-    }
-    else if(first->em == STORAGE){
-        key = first->u_data.a_storage + sizeof(int);
-    }
-    else{
-        cross_snprintf(debug_inf, 256, "popGenericCommand 2st should be a VAR or STORAGE\r\n");
+    if (first->em != STORAGE) {
+        cross_snprintf(debug_inf, 256, "popGenericCommand 2st should be a STORAGE\r\n");
         return new_debug(debug_inf, strlen(debug_inf));
     }
 
-    if ((dic_entry = listTypeLookupWriteOrCreate(dic, key)) == NULL){
+    if ((dic_entry = listTypeLookupWriteOrCreate(dic, csp(first))) == NULL) {
         return primitive_empty;
     }
 
@@ -4791,7 +4760,7 @@ void * original_lpop(void  *_left) {
     char debug_inf[256] = "\0";
     type* outcome = popGenericCommand(_left, REDIS_HEAD);
     if (outcome->em == DEBUG) {
-        cross_snprintf(debug_inf, 1024, "call subprocess error:%s", outcome->u_data.a_storage + sizeof(int));
+        cross_snprintf(debug_inf, 1024, "call subprocess error:%s", csp(outcome));
         gc_atom(outcome);
         return new_debug(debug_inf, strlen(debug_inf));
     }
@@ -4802,7 +4771,7 @@ void * original_rpop(void  *_left) {
     char debug_inf[256] = "\0";
     type* outcome = popGenericCommand(_left, REDIS_TAIL);
     if (outcome->em == DEBUG) {
-        cross_snprintf(debug_inf, 1024, "call subprocess error:%s", outcome->u_data.a_storage + sizeof(int));
+        cross_snprintf(debug_inf, 1024, "call subprocess error:%s", csp(outcome));
         gc_atom(outcome);
         return new_debug(debug_inf, strlen(debug_inf));
     }
@@ -4829,18 +4798,12 @@ void * original_lrange(void *_left) {
         return new_debug(debug_inf, strlen(debug_inf));
     }
 
-    if (first->em == VAR){
-        key = first->u_data.s_var;
-    }
-    else if (first->em == STORAGE) {
-        key = first->u_data.a_storage + sizeof(int);
-    }
-    else{
-        cross_snprintf(debug_inf, 256, "2st should be a VAR or STORAGE\r\n");
+    if (first->em != STORAGE) {
+        cross_snprintf(debug_inf, 256, "2st should be a STORAGE\r\n");
         return new_debug(debug_inf, strlen(debug_inf));
     }
 
-    if ((entry = listTypeLookupWriteOrCreate(dic, key)) == NULL) {
+    if ((entry = listTypeLookupWriteOrCreate(dic, csp(first))) == NULL) {
         return primitive_empty;
     }
     llen = listTypeLength(entry);
@@ -4861,7 +4824,7 @@ void * original_lrange(void *_left) {
     if (start > llen/2) start -= llen;
     ln = listIndex((list*)entry->u_data.un_long, start);
 
-    while(rangelen--) {
+    while (rangelen--) {
         outcome = c_cons(c_normal_copy(ln->value), outcome);
         ln = ln->next;
     }
@@ -4873,25 +4836,12 @@ void * original_lrange(void *_left) {
 int compareStringObjects(type *first, type *second) {
     char * a = NULL;
     char * b = NULL;
-    if(first->em == VAR){
-        a = first->u_data.s_var;
+    if (first->em != STORAGE) {
     }
-    else if(first->em == STORAGE){
-        a = first->u_data.a_storage + sizeof(int);
-    }
-    else{
+    if (second->em != STORAGE) {
     }
 
-    if (second->em == VAR) {
-        b = second->u_data.s_var;
-    }
-    else if(second->em == STORAGE){
-        b = second->u_data.a_storage + sizeof(int);
-    }
-    else{
-    }
-
-    return  strcmp(a, b);
+    return  strcmp(csp(first), csp(second));
 }
 
 typedef struct zskiplistNode {
@@ -4948,7 +4898,7 @@ void zslFree(zskiplist *zsl) {
     zskiplistNode *node = zsl->header->level[0].forward, *next;
 
     zfree(zsl->header);
-    while(node) {
+    while (node) {
         next = node->level[0].forward;
         zslFreeNode(node);
         node = next;
@@ -5037,7 +4987,7 @@ void zslDeleteNode(zskiplist *zsl, zskiplistNode *x, zskiplistNode **update) {
         zsl->tail = x->backward;
     }
 
-    while(zsl->level > 1 && zsl->header->level[zsl->level-1].forward == NULL)
+    while (zsl->level > 1 && zsl->header->level[zsl->level-1].forward == NULL)
         zsl->level--;
     zsl->length--;
 }
@@ -5299,29 +5249,20 @@ void* zaddGenericCommand(type* _left, int incr) {
         return new_debug(debug_inf, strlen(debug_inf));
     }
 
-    if(first->em == VAR){
-        dic_key = first->u_data.s_var;
-    }
-    else if(first->em == STORAGE){
-        dic_key = first->u_data.a_storage + sizeof(int);
-    }
-    else{
-        cross_snprintf(debug_inf, 256, "zaddGenericCommand 2st should be a VAR or STORAGE\r\n");
+    if (first->em != STORAGE) {
+        cross_snprintf(debug_inf, 256, "zaddGenericCommand 2st should be a STORAGE\r\n");
         return new_debug(debug_inf, strlen(debug_inf));
     }
 
-    if(second->em == VAR){
-        key = second->u_data.s_var;
-    }
-    else if(second->em == STORAGE){
+    if (second->em == STORAGE) {
         key = second->u_data.a_storage + sizeof(int);
     }
     else{
-        cross_snprintf(debug_inf, 256, "zaddGenericCommand 3st should be a VAR or STORAGE\r\n");
+        cross_snprintf(debug_inf, 256, "zaddGenericCommand 3st should be a STORAGE\r\n");
         return new_debug(debug_inf, strlen(debug_inf));
     }
 
-    if ((dic_entry = setLookupWriteOrCreate(dic, dic_key)) == NULL){
+    if ((dic_entry = setLookupWriteOrCreate(dic, csp(first))) == NULL) {
         return primitive_empty;
     }
 
@@ -5359,7 +5300,7 @@ void * original_zadd(void  *_left) {
     char debug_inf[256] = "\0";
     type* outcome = zaddGenericCommand(_left, 0);
     if (outcome->em == DEBUG) {
-        cross_snprintf(debug_inf, 1024, "call subprocess error:%s", outcome->u_data.a_storage + sizeof(int));
+        cross_snprintf(debug_inf, 1024, "call subprocess error:%s", csp(outcome));
         gc_atom(outcome);
         return new_debug(debug_inf, strlen(debug_inf));
     }
@@ -5370,7 +5311,7 @@ void * original_zincr(void  *_left) {
     char debug_inf[256] = "\0";
     type* outcome = zaddGenericCommand(_left, 1);
     if (outcome->em == DEBUG) {
-        cross_snprintf(debug_inf, 1024, "call subprocess error:%s", outcome->u_data.a_storage + sizeof(int));
+        cross_snprintf(debug_inf, 1024, "call subprocess error:%s", csp(outcome));
         gc_atom(outcome);
         return new_debug(debug_inf, strlen(debug_inf));
     }
@@ -5400,21 +5341,15 @@ void* zrangeGenericCommand(void* _left, int reverse) {
         return new_debug(debug_inf, strlen(debug_inf));
     }
 
-    if(first->em == VAR){
-        dic_key = first->u_data.s_var;
-    }
-    else if(first->em == STORAGE){
-        dic_key = first->u_data.a_storage + sizeof(int);
-    }
-    else{
-        cross_snprintf(debug_inf, 256, "zrangeGenericCommand 2st should be a VAR or STORAGE\r\n");
+    if (first->em != STORAGE) {
+        cross_snprintf(debug_inf, 256, "zrangeGenericCommand 2st should be a STORAGE\r\n");
         return new_debug(debug_inf, strlen(debug_inf));
     }
  
     start = second->u_data.un_long;
     end = third->u_data.un_long;
 
-    if ((dic_entry = setLookupWriteOrCreate(dic, dic_key)) == NULL){
+    if ((dic_entry = setLookupWriteOrCreate(dic, csp(first))) == NULL) {
         return primitive_empty;
     }
 
@@ -5453,7 +5388,7 @@ void* original_zrange(void* _left) {
     char debug_inf[256] = "\0";
     type* outcome = zrangeGenericCommand(_left, 0);
     if (outcome->em == DEBUG) {
-        cross_snprintf(debug_inf, 1024, "call subprocess error:%s", outcome->u_data.a_storage + sizeof(int));
+        cross_snprintf(debug_inf, 1024, "call subprocess error:%s", csp(outcome));
         gc_atom(outcome);
         return new_debug(debug_inf, strlen(debug_inf));
     }
@@ -5464,7 +5399,7 @@ void* original_zrevrange(void* _left) {
     char debug_inf[256] = "\0";
     type* outcome = zrangeGenericCommand(_left, 1);
     if (outcome->em == DEBUG) {
-        cross_snprintf(debug_inf, 1024, "call subprocess error:%s", outcome->u_data.a_storage + sizeof(int));
+        cross_snprintf(debug_inf, 1024, "call subprocess error:%s", csp(outcome));
         gc_atom(outcome);
         return new_debug(debug_inf, strlen(debug_inf));
     }
@@ -5492,27 +5427,18 @@ void* zrankGenericCommand(void* _left, int reverse) {
         return new_debug(debug_inf, strlen(debug_inf));
     }
 
-    if(first->em == VAR){
-        dic_key = first->u_data.s_var;
-    }
-    else if(first->em == STORAGE){
-        dic_key = first->u_data.a_storage + sizeof(int);
-    }
-    else{
-        cross_snprintf(debug_inf, 256, "zrankGenericCommand 2st should be a VAR or STORAGE\r\n");
+    if (first->em != STORAGE) {
+        cross_snprintf(debug_inf, 256, "zrankGenericCommand 2st should be a STORAGE\r\n");
         return new_debug(debug_inf, strlen(debug_inf));
     } 
 
-    if(second->em == VAR){
-        key = second->u_data.s_var;
-    }
-    else if(second->em == STORAGE){
-        key = second->u_data.a_storage + sizeof(int);
+    if (second->em == STORAGE) {
+        key = csp(second);
     }
     else{
     }
 
-    if ((dic_entry = setLookupWriteOrCreate(dic, dic_key)) == NULL){
+    if ((dic_entry = setLookupWriteOrCreate(dic, csp(first))) == NULL) {
         return primitive_empty;
     }
 
@@ -5535,7 +5461,7 @@ void* original_zrank(void* _left) {
     char debug_inf[256] = "\0";
     type* outcome = zrankGenericCommand(_left, 0);
     if (outcome->em == DEBUG) {
-        cross_snprintf(debug_inf, 1024, "call subprocess error:%s", outcome->u_data.a_storage + sizeof(int));
+        cross_snprintf(debug_inf, 1024, "call subprocess error:%s", csp(outcome));
         gc_atom(outcome);
         return new_debug(debug_inf, strlen(debug_inf));
     }
@@ -5546,7 +5472,7 @@ void* original_zrevrank(void* _left) {
     char debug_inf[256] = "\0";
     type* outcome = zrankGenericCommand(_left, 1);
     if (outcome->em == DEBUG) {
-        cross_snprintf(debug_inf, 1024, "call subprocess error:%s", outcome->u_data.a_storage + sizeof(int));
+        cross_snprintf(debug_inf, 1024, "call subprocess error:%s", csp(outcome));
         gc_atom(outcome);
         return new_debug(debug_inf, strlen(debug_inf));
     }
@@ -5571,29 +5497,20 @@ void* original_zscore(void* _left) {
         return new_debug(debug_inf, strlen(debug_inf));
     }
 
-    if(first->em == VAR){
-        dic_key = first->u_data.s_var;
-    }
-    else if(first->em == STORAGE){
-        dic_key = first->u_data.a_storage + sizeof(int);
-    }
-    else{
-        cross_snprintf(debug_inf, 256, "2st should be a VAR or STORAGE\r\n");
+    if (first->em == STORAGE) {
+        cross_snprintf(debug_inf, 256, "2st should be a STORAGE\r\n");
         return new_debug(debug_inf, strlen(debug_inf));
     } 
 
-    if(second->em == VAR){
-        key = second->u_data.s_var;
-    }
-    else if(second->em == STORAGE){
-        key = second->u_data.a_storage + sizeof(int);
+    if (second->em == STORAGE) {
+        key = csp(second);
     }
     else{
-        cross_snprintf(debug_inf, 256, "3st should be a VAR or STORAGE\r\n");
+        cross_snprintf(debug_inf, 256, "3st should be a STORAGE\r\n");
         return new_debug(debug_inf, strlen(debug_inf));
     }
 
-    if ((dic_entry = setLookupWriteOrCreate(dic, dic_key)) == NULL){
+    if ((dic_entry = setLookupWriteOrCreate(dic, csp(first))) == NULL) {
         return primitive_empty;
     }
 
@@ -5635,8 +5552,8 @@ const char *cjson_geterror_ptr(void) {return ep;}
 static int cjson_strcasecmp(const char *s1, const char *s2) {
     if (!s1) return (s1 == s2) ? 0:1;
     if (!s2) return 1;
-    for(; cross_tolower(*s1) == cross_tolower(*s2); ++s1,  ++s2) {
-        if(*s1 == 0) {
+    for (; cross_tolower(*s1) == cross_tolower(*s2); ++s1,  ++s2) {
+        if (*s1 == 0) {
             return 0;
         }
     }
@@ -5927,7 +5844,7 @@ static const char *parse_value(cjson *item, const char *value) {
     if (*value == '\"') {
         return parse_string(item, value);
     }
-    if (*value == '-' || (*value >= '0' && *value <= '9')){
+    if (*value == '-' || (*value >= '0' && *value <= '9')) {
         return parse_number(item, value);
     }
     if (*value == '[') { 
@@ -6044,7 +5961,7 @@ static char *print_array(cjson *item, int depth, int fmt) {
     ptr = out+1;*ptr = 0;
     for (i = 0;i < numentries;i++) {
         cross_strcpy(ptr, entries[i]);ptr += cross_strlen(entries[i]);
-        if (i != numentries-1) {*ptr++= ',';if(fmt)*ptr++= ' ';*ptr = 0;}
+        if (i != numentries-1) {*ptr++= ',';if (fmt)*ptr++= ' ';*ptr = 0;}
         cjson_free(entries[i]);
     }
     cjson_free(entries);
@@ -6280,9 +6197,9 @@ void   cjson_ReplaceItemInArray(cjson *array, int which, cjson *newitem) {
 void   cjson_ReplaceItemInObject(cjson *object, const char *string, cjson *newitem) {
     int i = 0;
     cjson *c = object->child;
-    while(c && cjson_strcasecmp(c->string, string))i++, c = c->next;
+    while (c && cjson_strcasecmp(c->string, string))i++, c = c->next;
 
-    if(c) {
+    if (c) {
         newitem->string = cjson_strdup(string);
         cjson_ReplaceItemInArray(object, i, newitem);
     }
@@ -6292,34 +6209,34 @@ void   cjson_ReplaceItemInObject(cjson *object, const char *string, cjson *newit
 cjson *cjson_createnull(void) {
     cjson *item = cjson_new_item();
 
-    if(item)item->type = CJSON_NULL;
+    if (item)item->type = CJSON_NULL;
     return item;
 }
 
 cjson *cjson_createTrue(void) {
     cjson *item = cjson_new_item();
 
-    if(item)item->type = CJSON_TRUE;
+    if (item)item->type = CJSON_TRUE;
     return item;
 }
 
 cjson *cjson_createFalse(void) {
     cjson *item = cjson_new_item();
 
-    if(item)item->type = CJSON_FALSE;
+    if (item)item->type = CJSON_FALSE;
     return item;
 }
 
 cjson *cjson_CreateBool(int b) {
     cjson *item = cjson_new_item();
-    if(item)item->type = b?CJSON_TRUE:CJSON_FALSE;
+    if (item)item->type = b?CJSON_TRUE:CJSON_FALSE;
     return item;
 }
 
 cjson *cjson_createnumber(int num) {
     cjson *item = cjson_new_item();
 
-    if(item) {
+    if (item) {
         item->type = CJSON_NUMBER;
         item->valueint = (int)num;
     }
@@ -6329,7 +6246,7 @@ cjson *cjson_createnumber(int num) {
 cjson *cjson_createstring(const char *string) {
     cjson *item = cjson_new_item();
 
-    if(item) {
+    if (item) {
         item->type = CJSON_STRING;
         item->valuestring = cjson_strdup(string);
     }
@@ -6339,7 +6256,7 @@ cjson *cjson_createstring(const char *string) {
 
 cjson *cjson_createarray(void) {
     cjson *item = cjson_new_item();
-    if(item)
+    if (item)
         item->type = CJSON_ARRAY;
 
     return item;
@@ -6348,7 +6265,7 @@ cjson *cjson_createarray(void) {
 cjson *cjson_createobject(void) {
     cjson *item = cjson_new_item();
 
-    if(item)
+    if (item)
         item->type = CJSON_OBJECT;
 
     return item;
@@ -6359,9 +6276,9 @@ cjson *cjson_CreateIntArray(const int *numbers, int count) {
     int i;
     cjson *n = 0, *p = 0, *a = cjson_createarray();
 
-    for(i = 0;a && i < count;i++) {
+    for (i = 0;a && i < count;i++) {
         n = cjson_createnumber(numbers[i]);
-        if(!i)a->child = n;
+        if (!i)a->child = n;
         else suffix_object(p, n);
         p = n;
     }
@@ -6373,9 +6290,9 @@ cjson *cjson_CreateFloatArray(const float *numbers, int count)  {
     int i;
     cjson *n = 0, *p = 0, *a = cjson_createarray();
 
-    for(i = 0;a && i < count;i++) {
+    for (i = 0;a && i < count;i++) {
         n = cjson_createnumber(numbers[i]);
-        if(!i)a->child = n;
+        if (!i)a->child = n;
         else suffix_object(p, n);
         p = n;
     }
@@ -6386,10 +6303,10 @@ cjson *cjson_createstringArray(const char **strings, int count) {
     int i;
     cjson *n = 0, *p = 0, *a = cjson_createarray();
 
-    for(i = 0;a && i < count;i++) {
+    for (i = 0;a && i < count;i++) {
         n = cjson_createstring(strings[i]);
 
-        if(!i)a->child = n;
+        if (!i)a->child = n;
         else suffix_object(p, n);
         p = n;
     }
@@ -6448,7 +6365,7 @@ void cjson_Minify(char *json) {
             while (*json && !(*json == '*' && json[1] == '/')) json++;
             json += 2;
         }   
-        else if (*json == '\"'){
+        else if (*json == '\"') {
             *into++= *json++;
             while (*json && *json != '\"') {
                 if (*json == '\\') *into++= *json++;*into++= *json++;
@@ -6471,14 +6388,14 @@ void * original_jaddarray(void * _left) {
     char debug_inf[256] = "\0";
 
     left = c_car(_left);
-    if(left->em != JSON){
+    if (left->em != JSON) {
         cross_strcpy(debug_inf, "1st should be a JSON type\r\n");
         return new_debug(debug_inf, cross_strlen(debug_inf));
     }
     json = (cjson*)left->u_data.un_long;
 
     right = c_cadr(_left);
-    if(right->em != JSON){
+    if (right->em != JSON) {
         cross_strcpy(debug_inf, "2st should be a JSON type\r\n");
         return new_debug(debug_inf, cross_strlen(debug_inf));
     }
@@ -6492,43 +6409,39 @@ void * original_jaddarray(void * _left) {
 void * original_jaddobject(void * _left) {
     type * left = NULL;
     type * right = NULL;
+    type * present = NULL;    
     cjson *json = NULL;
     cjson *jsonx = NULL;
     char * key = NULL;
     char debug_inf[256] = "\0";
 
     left = c_car(_left);
-    if(left->em != JSON){
+    if (left->em != JSON) {
         cross_strcpy(debug_inf, "2st should be a JSON type\r\n");
         return new_debug(debug_inf, cross_strlen(debug_inf));
     }
     json = (cjson*)left->u_data.un_long;
 
     right = c_cadr(_left);
-    if(right->em == VAR){
-        key = (char*)right->u_data.s_var;
-    }
-    else if(right->em == STORAGE){
-        key = (char*)(right->u_data.a_storage) + sizeof(int);
-    }
-    else {
-        cross_strcpy(debug_inf, "2st should be a VAR or STORAGE type\r\n");
+    if (right->em == STORAGE) {
+        cross_strcpy(debug_inf, "2st should be a STORAGE type\r\n");
         return new_debug(debug_inf, cross_strlen(debug_inf));
     }
 
-    right = c_caddr(_left);
-    if(right->em != JSON){
+    present = c_caddr(_left);
+    if (present->em != JSON) {
         cross_strcpy(debug_inf, "3st should be a JSON type\r\n");
         return new_debug(debug_inf, cross_strlen(debug_inf));
     }
 
     jsonx = (cjson*)right->u_data.un_long;
-    cjson_additem_toobject(json, key, jsonx);
+    cjson_additem_toobject(json, csp(right), jsonx);
     return  c_normal_copy(left);
 }
 
 void * original_jupdateobject(void * _left) {
     type * left = NULL;
+    type * right = NULL;    
     cjson *json = NULL;
     cjson *jsonx = NULL;
     char * key = NULL;
@@ -6536,28 +6449,27 @@ void * original_jupdateobject(void * _left) {
     char debug_inf[256] = "\0";
 
     left = c_car(_left);
-    if(left->em != JSON){
+    if (left->em != JSON) {
         cross_strcpy(debug_inf, "1st should be a JSON type\r\n");
         return new_debug(debug_inf, cross_strlen(debug_inf));
     }
     json = (cjson*)left->u_data.un_long;
 
     left = c_cadr(_left);
-    if (left->em != VAR) {
-        cross_strcpy(debug_inf, "2st should be a VAR type\r\n");
+    if (left->em != STORAGE) {
+        cross_strcpy(debug_inf, "2st should be a STORAGE type\r\n");
         return new_debug(debug_inf, cross_strlen(debug_inf));
     }
-    key = (char*)left->u_data.s_var;
-
-    left = c_caddr(_left);
-    if(left->em != JSON){
+    
+    right = c_caddr(_left);
+    if (right->em != JSON) {
         cross_strcpy(debug_inf, "3st should be a JSON type\r\n");
         return new_debug(debug_inf, cross_strlen(debug_inf));
     }
-    jsonx = (cjson*)left->u_data.un_long;
+    jsonx = (cjson*)right->u_data.un_long;
 
-    cjson_delitem_fromobj(json, key);
-    cjson_additem_toobject(json, key, jsonx);
+    cjson_delitem_fromobj(json, csp(left));
+    cjson_additem_toobject(json, csp(left), jsonx);
 
     result = (type*)new_object();
     result->em = JSON;
@@ -6574,19 +6486,18 @@ void * original_jdeleteobject(void * _left) {
     char debug_inf[256] = "\0";
 
     left = c_car(_left);
-    if(left->em != JSON){
+    if (left->em != JSON) {
         cross_strcpy(debug_inf, "1st should be a JSON type\r\n");
         return new_debug(debug_inf, cross_strlen(debug_inf));
     }
     json = (cjson*)left->u_data.un_long;
 
     left = c_cadr(_left);
-    if (left->em != VAR) {
-        cross_strcpy(debug_inf, "2st should be a VAR type\r\n");
+    if (left->em != STORAGE) {
+        cross_strcpy(debug_inf, "2st should be a STORAGE type\r\n");
         return new_debug(debug_inf, cross_strlen(debug_inf));
     }
-    key = (char*)left->u_data.s_var;
-    cjson_delitem_fromobj(json, key);
+    cjson_delitem_fromobj(json, csp(left));
 
     result = (type*)new_object();
     result->em = JSON;
@@ -6613,17 +6524,14 @@ void * original_jcreatestring(void * _left) {
     char debug_inf[256] = "\0";
 
     left = c_car(_left);
-    if(left->em == VAR){
-        value = (char*)left->u_data.s_var;
+    if (left->em == STORAGE) {
+        value = csp(left);
     }
-    else if(left->em == STORAGE){
-        value = (char*)(left->u_data.a_storage) + sizeof(int);
-    }
-    else if(left->em == EMPTY){
+    else if (left->em == EMPTY) {
         value = "";
     }
     else{
-        cross_strcpy(debug_inf, "1st should be a VAR or STORAGE type\r\n");
+        cross_strcpy(debug_inf, "1st should be a STORAGE type\r\n");
         return new_debug(debug_inf, cross_strlen(debug_inf));
     }
 
@@ -6641,7 +6549,7 @@ void * original_jcreateint(void * _left) {
     char debug_inf[256] = "\0";
 
     left = c_car(_left);
-    if(left->em != UNLONG) {
+    if (left->em != UNLONG) {
         cross_strcpy(debug_inf, "1st should be a UNLONG type\r\n");
         return new_debug(debug_inf, cross_strlen(debug_inf));
     }
@@ -6738,7 +6646,7 @@ void * original_killjson(void *_left) {
     char debug_inf[256] = "\0";
 
     left = c_car(_left);
-    if(left->em != JSON) {
+    if (left->em != JSON) {
         cross_strcpy(debug_inf, "1st --> a JSON type\r\n");
         return new_debug(debug_inf, cross_strlen(debug_inf));
     }
@@ -6757,28 +6665,25 @@ void * original_jgetobject(void * _left) {
     char debug_inf[256] = "\0";
 
     left = c_car(_left);
-    if(left->em == EMPTY){
+    if (left->em == EMPTY) {
         return primitive_empty;
     }
-    if(left->em != JSON) {
+    if (left->em != JSON) {
         cross_strcpy(debug_inf, "1st --> a JSON type\r\n");
         return new_debug(debug_inf, cross_strlen(debug_inf));
     }
     json = (cjson*)left->u_data.un_long;
     right = c_cadr(_left);
-    if(right->em == VAR){
-        key = (char*)right->u_data.s_var;
-    }
-    else if(right->em == STORAGE){
-        key = (char*)(right->u_data.a_storage) + sizeof(int);
+    if (right->em == STORAGE) {
+        key = csp(right);
     }
     else {
-        cross_strcpy(debug_inf, "2st --> a VAR or STORAGE type\r\n");
+        cross_strcpy(debug_inf, "2st --> a STORAGE type\r\n");
         return new_debug(debug_inf, cross_strlen(debug_inf));
     }
 
     json_result = cjson_getobjectitem(json, key);
-    if(json_result == NULL){
+    if (json_result == NULL) {
         return primitive_empty;
     }
     result = (type*)new_object();
@@ -6795,15 +6700,15 @@ void * original_jgetstring(void * _left) {
     char debug_inf[256] = "\0";
 
     left = c_car(_left);
-    if(left->em == EMPTY){
+    if (left->em == EMPTY) {
         return primitive_empty;
     }
-    if(left->em != JSON) {
+    if (left->em != JSON) {
         cross_strcpy(debug_inf, "1st --> a JSON type\r\n");
         return new_debug(debug_inf, cross_strlen(debug_inf));
     }
     json_result = (cjson*)left->u_data.un_long;
-    if(json_result->type == CJSON_STRING) {
+    if (json_result->type == CJSON_STRING) {
         /*follow code is very important, use var could be risk for rewrite the ref_count slot as memorey leak.*/
         current = json_result->valuestring;
         result = new_storage(current, cross_strlen(current));
@@ -6818,15 +6723,15 @@ void * original_jgetint(void * _left) {
     char debug_inf[256] = "\0";
 
     left = c_car(_left);
-    if(left->em == EMPTY){
+    if (left->em == EMPTY) {
         return primitive_empty;
     }
-    if(left->em != JSON) {
+    if (left->em != JSON) {
         cross_strcpy(debug_inf, "1st --> a JSON type\r\n");
         return new_debug(debug_inf, cross_strlen(debug_inf));
     }
     json_result = (cjson*)left->u_data.un_long;
-    if(json_result->type == CJSON_NUMBER) {
+    if (json_result->type == CJSON_NUMBER) {
         result = json_result->valueint;
     }
     return long_type(result);
@@ -6839,13 +6744,13 @@ void * original_jgetarraysize(void * _left) {
     int sz = 0;
 
     left = c_car(_left);
-    if(left->em == EMPTY){
+    if (left->em == EMPTY) {
         return  long_type(0);
     }
 
     json_result = (cjson*)left->u_data.un_long;
     json = json_result->child;
-    while(json)sz++, json = json->next;
+    while (json)sz++, json = json->next;
     return long_type(sz);
 }
 
@@ -6859,13 +6764,13 @@ void * original_jgetkeys(void * _left) {
     char debug_inf[256] = "\0";
 
     left = c_car(_left);
-    if(left->em != JSON){
+    if (left->em != JSON) {
         cross_strcpy(debug_inf, "1st --> a JSON type\r\n");
         return new_debug(debug_inf, cross_strlen(debug_inf));
     }
     json_result = (cjson*)left->u_data.un_long;
     json = json_result->child;
-    while(json) {
+    while (json) {
         key = json->string;
         outcome = new_storage(key, cross_strlen(key));
         result = c_cons(outcome, result);
@@ -6884,14 +6789,14 @@ void * original_jgetarrayitem(void * _left) {
     char debug_inf[256] = "\0";
 
     left = c_car(_left);
-    if(left->em != JSON) {
+    if (left->em != JSON) {
         cross_strcpy(debug_inf, "1st --> a JSON type\r\n");
         return new_debug(debug_inf, cross_strlen(debug_inf));
     }
     json_result = (cjson*)left->u_data.un_long;
 
     right = c_cadr(_left);
-    if(right->em != UNLONG) {
+    if (right->em != UNLONG) {
         cross_strcpy(debug_inf, "2st --> a UNLONG type\r\n");
         return new_debug(debug_inf, cross_strlen(debug_inf));
     }
@@ -6915,13 +6820,13 @@ void * original_makejson(void *_left) {
     if (left->em == EMPTY) {
         return primitive_empty;
     }
-    if(left->em != STORAGE) {
+    if (left->em != STORAGE) {
         cross_strcpy(debug_inf, "1st should be a STORAGE type\r\n");
         return new_debug(debug_inf, cross_strlen(debug_inf));
     }
 
-    begin = left->u_data.a_storage + sizeof(int);
-    if(begin != NULL && left->em != EMPTY){
+    begin = csp(left);
+    if (begin != NULL && left->em != EMPTY) {
         json = cjson_parse(begin);
         if (!json) {
             cross_strcpy(debug_inf, "makejson error\r\n");
@@ -6982,17 +6887,14 @@ void * original_random(void * _left) {
     return outcome;
 }
 
-void * original_system(void * _left){
+void * original_system(void * _left) {
     type * left = c_car(_left);
     char * cmd = NULL;
 
-    if(left->em == VAR){
-        cmd = left->u_data.s_var;
+    if (left->em == STORAGE) {
+        cmd = csp(left);
     }
-    else if(left->em == STORAGE){
-        cmd = left->u_data.a_storage + sizeof(int);
-    }
-    else if(left->em == EMPTY){
+    else if (left->em == EMPTY) {
         return primitive_empty;
     }
     else {}
@@ -7001,7 +6903,7 @@ void * original_system(void * _left){
     return long_type(0);
 }
 
-void* original_exe(void * _left){
+void* original_exe(void * _left) {
     type * right = _left, *left = primitive_empty;
     char * cmd = NULL;
     int pid, i = 0, first = 0;
@@ -7011,13 +6913,10 @@ void* original_exe(void * _left){
     argv = (char**)cross_calloc(sizeof(char*), right->obj_length + 1);
     while (1) {
         left = c_car(right);
-        if(left->em == VAR){
-            cmd = left->u_data.s_var;
+        if (left->em == STORAGE) {
+            cmd = csp(left);
         }
-        else if(left->em == STORAGE){
-            cmd = left->u_data.a_storage + sizeof(int);
-        }
-        else if(left->em == EMPTY){
+        else if (left->em == EMPTY) {
             gc(_left);
             return primitive_empty;
         }
@@ -7062,7 +6961,7 @@ void* original_exe(void * _left){
     return long_type(0);
 }
 
-void * original_mktime(void * _left){
+void * original_mktime(void * _left) {
     type * present = c_car(_left);
     char * str_time = NULL;
     int unixtime = 0;
@@ -7070,14 +6969,11 @@ void * original_mktime(void * _left){
     int year, month, day, hour, min, second;  
     char debug_inf[256] = "\0";
   
-    if(present->em == VAR){
-        str_time = present->u_data.s_var;
-    }
-    else if(present->em == STORAGE){
-        str_time = present->u_data.a_storage + sizeof(int);
+    if (present->em == STORAGE) {
+        str_time = csp(present);
     }
     else {
-        cross_strcpy(debug_inf, "1st --> VAR or STORAGE Type\r\n");
+        cross_strcpy(debug_inf, "1st --> STORAGE Type\r\n");
         return new_debug(debug_inf, cross_strlen(debug_inf));
     }
   
@@ -7100,7 +6996,7 @@ void * original_mktime(void * _left){
     return long_type(unixtime);
 }
 
-void * original_unixtime(void * _left){
+void * original_unixtime(void * _left) {
     time_t now;  
     long unixtime = time(&now);  
     return long_type(unixtime);
@@ -7192,14 +7088,10 @@ void * original_decrypt(void *_left) {
     char * material = NULL;
     int len = 0;
     char debug_inf[256] = "\0";
-    char * buffer_trans = (char*) cross_calloc(BUF_SIZE, sizeof(char));
+    char * buffer_trans = (char*) cross_calloc(1024, sizeof(char));
   
-    if(present->em == VAR){
-        material = present->u_data.s_var;
-        len = cross_strlen(material);
-    }
-    else if(present->em == STORAGE){
-        material = present->u_data.a_storage + sizeof(int);
+    if (present->em == STORAGE) {
+        material = csp(present);
         len = *(int*)present->u_data.a_storage - 1;
     }
     else {
@@ -7221,14 +7113,10 @@ void * original_encrypt(void *_left) {
     char * material = NULL;
     int len = 0;
     char debug_inf[256] = "\0";
-    char * buffer_trans = (char*) cross_calloc(BUF_SIZE, sizeof(char));
+    char * buffer_trans = (char*) cross_calloc(1024, sizeof(char));
   
-    if(present->em == VAR){
-        material = present->u_data.s_var;
-        len = cross_strlen(material);
-    }
-    else if(present->em == STORAGE){
-        material = present->u_data.a_storage + sizeof(int);
+    if (present->em == STORAGE) {
+        material = csp(present);
         len = *(int*)present->u_data.a_storage - 1;
     }
     else {
@@ -7244,7 +7132,7 @@ void * original_encrypt(void *_left) {
     return outcome;
 }
 
-void * original_exact(void *_left){
+void * original_exact(void *_left) {
     type * left = c_car(_left);
     type * right = c_cadr(_left);
     type * result = primitive_empty;
@@ -7258,29 +7146,26 @@ void * original_exact(void *_left){
         cross_strcpy(debug_inf, "1st --> a STORAGE\r\n");
         return new_debug(debug_inf, cross_strlen(debug_inf));
     }
-    begin = left->u_data.a_storage + sizeof(int);
+    begin = csp(left);
 
-    if(right->em == VAR){
-        pattern = right->u_data.s_var;
-    }
-    else if(right->em == STORAGE){
-        pattern = right->u_data.a_storage + sizeof(int);
+    if (right->em == STORAGE) {
+        pattern = csp(right);
     }
     else if (right->em == EMPTY) {
         return primitive_empty;
     }
     else {
-        cross_strcpy(debug_inf, "2st --> a VAR or STORAGE\r\n");
+        cross_strcpy(debug_inf, "2st --> a STORAGE\r\n");
         return new_debug(debug_inf, cross_strlen(debug_inf));
     }
 
-    if(begin != NULL) {
+    if (begin != NULL) {
         begin = cross_strstr(begin, pattern);
-        if(begin == NULL){
+        if (begin == NULL) {
             color_fprintf(stderr, COLOR_GREEN, "found nothing, pattern is %s\r\n", pattern);
             return primitive_empty;
         }
-        file_buffer = (char*) cross_calloc(BUF_SIZE, sizeof(char));
+        file_buffer = (char*) cross_calloc(1024, sizeof(char));
         cross_sprintf(file_buffer, "%s", begin);
 
         result = new_storage(file_buffer, cross_strlen(file_buffer));
@@ -7324,10 +7209,10 @@ typedef struct
 #define H(x,y,z) (x^y^z)  
 #define I(x,y,z) (y ^ (x | ~z))  
 #define ROTATE_LEFT(x,n) ((x << n) | (x >> (32-n)))
-#define FF(a,b,c,d,x,s,ac){    a += F(b,c,d) + x + ac;    a = ROTATE_LEFT(a,s);    a += b;}  
-#define GG(a,b,c,d,x,s,ac){    a += G(b,c,d) + x + ac;    a = ROTATE_LEFT(a,s);    a += b;}  
-#define HH(a,b,c,d,x,s,ac){    a += H(b,c,d) + x + ac;    a = ROTATE_LEFT(a,s);    a += b;}  
-#define II(a,b,c,d,x,s,ac){    a += I(b,c,d) + x + ac;    a = ROTATE_LEFT(a,s);    a += b;}                                              
+#define FF(a,b,c,d,x,s,ac) {    a += F(b,c,d) + x + ac;    a = ROTATE_LEFT(a,s);    a += b;}  
+#define GG(a,b,c,d,x,s,ac) {    a += G(b,c,d) + x + ac;    a = ROTATE_LEFT(a,s);    a += b;}  
+#define HH(a,b,c,d,x,s,ac) {    a += H(b,c,d) + x + ac;    a = ROTATE_LEFT(a,s);    a += b;}  
+#define II(a,b,c,d,x,s,ac) {    a += I(b,c,d) + x + ac;    a = ROTATE_LEFT(a,s);    a += b;}                                              
 
 void MD5Init(MD5_CTX *context);  
 void MD5Update(MD5_CTX *context,unsigned char *input,unsigned int inputlen);  
@@ -7358,15 +7243,15 @@ void MD5Update(MD5_CTX *context, unsigned char *input, unsigned int inputlen)
     index = (context->count[0] >> 3) & 0x3F;  
     partlen = 64 - index;  
     context->count[0] += inputlen << 3;  
-    if(context->count[0] < (inputlen << 3))  
+    if (context->count[0] < (inputlen << 3))  
         context->count[1]++;  
     context->count[1] += inputlen >> 29;  
   
-    if(inputlen >= partlen)  
+    if (inputlen >= partlen)  
         {  
             cross_memcpy(&context->buffer[index],input,partlen);  
             MD5Transform(context->state,context->buffer);  
-            for(i = partlen;i+64 <= inputlen;i+=64)  
+            for (i = partlen;i+64 <= inputlen;i+=64)  
                 MD5Transform(context->state,&input[i]);  
             index = 0;          
         }    
@@ -7390,7 +7275,7 @@ void MD5Final(MD5_CTX *context,unsigned char digest[16])
 void MD5Encode(unsigned char *output,unsigned int *input,unsigned int len)  
 {  
     unsigned int i = 0,j = 0;  
-    while(j < len)  
+    while (j < len)  
         {  
             output[j] = input[i] & 0xFF;    
             output[j+1] = (input[i] >> 8) & 0xFF;  
@@ -7403,7 +7288,7 @@ void MD5Encode(unsigned char *output,unsigned int *input,unsigned int len)
 void MD5Decode(unsigned int *output,unsigned char *input,unsigned int len)  
 {  
     unsigned int i = 0,j = 0;  
-    while(j < len)  
+    while (j < len)  
         {  
             output[i] = (input[j]) |  
                 (input[j+1] << 8) |  
@@ -7500,7 +7385,6 @@ void MD5Transform(unsigned int state[4],unsigned char block[64])
 void * original_md(void * _left) {
     type * left = c_car(_left);
     type * outcome = primitive_empty;
-    char * source = NULL;
     char response[256] = "\0";
 
     char tmp[3]={'\0'};
@@ -7509,21 +7393,15 @@ void * original_md(void * _left) {
     char  debug_inf[256] = "\0";
     MD5_CTX md5;  
 
-    if(left->em == VAR){
-        source = left->u_data.s_var;
-    }
-    else if(left->em == STORAGE){
-        source = left->u_data.a_storage + sizeof(int);
-    }
-    else{
-        cross_strcpy(debug_inf, "1st should be STORAGE or VAR\r\n");
+    if (left->em != STORAGE) {
+        cross_strcpy(debug_inf, "1st should be STORAGE\r\n");
         return new_debug(debug_inf, cross_strlen(debug_inf));
     }
 
     MD5Init(&md5);           
-    MD5Update(&md5, (unsigned char*)source, (unsigned int)cross_strlen(source));
+    MD5Update(&md5, (unsigned char*)csp(left), (unsigned int)css(left));
     MD5Final(&md5, decrypt);   
-    for(i = 0; i < 16; i++) {  
+    for (i = 0; i < 16; i++) {  
         cross_sprintf(tmp, "%02X", decrypt[i]); 
         strcat(response, tmp);
     }  
@@ -7718,24 +7596,20 @@ void * original_encode(void * _left) {
     type * left = c_car(_left);
     type * outcome = primitive_empty;
     char * source = NULL;
-    char * response = (char*) cross_calloc(BUF_SIZE, sizeof(char));
+    char * response = (char*) cross_calloc(1024, sizeof(char));
     int    source_size = 0;
-    char * response_64= (char*) cross_calloc(BUF_SIZE, sizeof(char));
+    char * response_64= (char*) cross_calloc(1024, sizeof(char));
     int storage_size = 0;
     char debug_inf[256] = "\0";
 
-    if(left->em == VAR){
-        source = left->u_data.s_var;
-        source_size = cross_strlen(source);
-    }
-    else if(left->em == STORAGE){
-        source = left->u_data.a_storage + sizeof(int);
-        source_size = *(int*)left->u_data.a_storage;
+    if (left->em == STORAGE) {
+        source = csp(left);
+        source_size = css(left);
     }
     else{
         cross_free(response);
         cross_free(response_64);
-        cross_strcpy(debug_inf, "1st --> VAR or STORAGE Type\r\n");
+        cross_strcpy(debug_inf, "1st --> STORAGE Type\r\n");
         return new_debug(debug_inf, cross_strlen(debug_inf));
     }
     uri_encode((unsigned char*)source, source_size, response, &storage_size); 
@@ -7751,24 +7625,20 @@ void * original_decode(void * _left) {
     type * left = c_car(_left);
     type * outcome = primitive_empty;
     char * source = NULL;
-    char * response = (char*) cross_calloc(BUF_SIZE, sizeof(char));
+    char * response = (char*) cross_calloc(1024, sizeof(char));
     int    source_size = 0;
-    char * response_64= (char*) cross_calloc(BUF_SIZE, sizeof(char));
+    char * response_64= (char*) cross_calloc(1024, sizeof(char));
     int storage_size = 0;
     char debug_inf[256] = "\0";
 
-    if(left->em == VAR){
-        source = left->u_data.s_var;
-        source_size = cross_strlen(source);
-    }
-    else if(left->em == STORAGE){
-        source = left->u_data.a_storage + sizeof(int);
-        source_size = *(int*)left->u_data.a_storage;
+    if (left->em == STORAGE) {
+        source = csp(left);
+        source_size = css(left);
     }
     else{
         cross_free(response);
         cross_free(response_64);
-        cross_strcpy(debug_inf, "1st --> VAR or STORAGE Type\r\n");
+        cross_strcpy(debug_inf, "1st --> STORAGE Type\r\n");
         return new_debug(debug_inf, cross_strlen(debug_inf));
     }
     base64_decode(source, &source_size, (unsigned char*)response_64);
@@ -7786,21 +7656,17 @@ void* original_fflush(void *_left) {
 }
 
 void * original_itoa(void *_left) {
+    char buf[256] = "\0";
     type * left = c_car(_left);
-    type * outcome = primitive_empty;
-    outcome = new_object();
-    outcome->em = VAR;
-    cross_sprintf(outcome->u_data.s_var, "%ld", left->u_data.un_long);
-    return outcome;
+    cross_sprintf(buf, "%ld", left->u_data.un_long);
+    return new_storage(buf, sizeof(left->u_data.un_long));
 }
 
 void * original_ctoa(void *_left) {
+    char buf[256] = "\0";    
     type * left = c_car(_left);
-    type * outcome = primitive_empty;
-    outcome = new_object();
-    outcome->em = VAR;
-    cross_sprintf(outcome->u_data.s_var, "%c", left->u_data.a_char);
-    return outcome;
+    cross_sprintf(buf, "%c", left->u_data.a_char);
+    return new_storage(buf, 1);    
 }
 
 void * original_strlen(void *_left) {
@@ -7809,17 +7675,14 @@ void * original_strlen(void *_left) {
     int value = 0;
     char debug_inf[256] = "\0";
 
-    if(left->em == VAR){
-        value = cross_strlen(left->u_data.s_var);
-    }
-    else if(left->em == STORAGE){
+    if (left->em == STORAGE) {
         value = *(int*)(left->u_data.a_storage) - 1;
     }
-    else if(left->em == EMPTY){
+    else if (left->em == EMPTY) {
         value = 0;
     }
     else {
-        cross_strcpy(debug_inf, "1st should be a VAR or STORAGE\r\n");
+        cross_strcpy(debug_inf, "1st should be a STORAGE\r\n");
         return new_debug(debug_inf, cross_strlen(debug_inf));
     }
 
@@ -7857,7 +7720,7 @@ int matchhere(char *regexp, char *text, int label) {
     if (regexp[1] == '*') 
         return matchstar(regexp[0], regexp+2, text, label); 
     if (regexp[0] == '$' && regexp[1] == '\0') 
-        if(*text == '\0'){
+        if (*text == '\0') {
             return label;
         }
     if (*text!='\0' && (regexp[0]=='.' || regexp[0]==*text)) 
@@ -7882,30 +7745,18 @@ void * original_grep(void *_left) {
     int target = 0;
     char debug_inf[256] = "\0";
 
-    if(left->em == VAR){
-        source = left->u_data.s_var;
-    }
-    else if(left->em == STORAGE){
-        source = left->u_data.a_storage + sizeof(int);
-    }
-    else {
-        cross_strcpy(debug_inf, "1st should be a VAR or STORAGE\r\n");
+    if (left->em != STORAGE) {
+        cross_strcpy(debug_inf, "1st should be a STORAGE\r\n");
         return new_debug(debug_inf, cross_strlen(debug_inf));
     }
 
-    if(right->em == VAR){
-        pattern = right->u_data.s_var;
-    }
-    else if(right->em == STORAGE){
-        pattern = right->u_data.a_storage + sizeof(int);
-    }
-    else {
-        cross_strcpy(debug_inf, "2st should be a VAR or STORAGE\r\n");
+    if (right->em != STORAGE) {
+        cross_strcpy(debug_inf, "2st should be a STORAGE\r\n");
         return new_debug(debug_inf, cross_strlen(debug_inf));
     }
 
-    target = grep_match(source, pattern, 0);
-    if(target != -1) {
+    target = grep_match(csp(left), csp(right), 0);
+    if (target != -1) {
         outcome = long_type(target);
     }
     return outcome;
@@ -7920,30 +7771,18 @@ void * original_find(void *_left) {
     char* target = NULL;
     char debug_inf[256] = "\0";
 
-    if(left->em == VAR){
-        source = left->u_data.s_var;
-    }
-    else if(left->em == STORAGE){
-        source = left->u_data.a_storage + sizeof(int);
-    }
-    else {
-        cross_strcpy(debug_inf, "1st should be a VAR or STORAGE\r\n");
+    if (left->em != STORAGE) {
+        cross_strcpy(debug_inf, "1st should be a STORAGE\r\n");
         return new_debug(debug_inf, cross_strlen(debug_inf));
     }
 
-    if(right->em == VAR){
-        pattern = right->u_data.s_var;
-    }
-    else if(right->em == STORAGE){
-        pattern = right->u_data.a_storage + sizeof(int);
-    }
-    else {
-        cross_strcpy(debug_inf, "2st should be a VAR or STORAGE\r\n");
+    if (right->em != STORAGE) {
+        cross_strcpy(debug_inf, "2st should be a STORAGE\r\n");
         return new_debug(debug_inf, cross_strlen(debug_inf));
     }
 
-    target = cross_strstr(source, pattern);
-    if(target != NULL){
+    target = cross_strstr(csp(left), csp(right));
+    if (target != NULL) {
         outcome = long_type(target - source);
     }
     return outcome;
@@ -7958,40 +7797,28 @@ void * original_strstr(void *_left) {
     char* target = NULL;
     char debug_inf[256] = "\0";
 
-    if(left->em == VAR){
-        source = left->u_data.s_var;
-    }
-    else if(left->em == STORAGE){
-        source = left->u_data.a_storage + sizeof(int);
-    }
-    else {
-        cross_strcpy(debug_inf, "1st should be a VAR or STORAGE\r\n");
+    if (left->em != STORAGE) {
+        cross_strcpy(debug_inf, "1st should be a STORAGE\r\n");
         return new_debug(debug_inf, cross_strlen(debug_inf));
     }
 
-    if(right->em == VAR){
-        pattern = right->u_data.s_var;
-    }
-    else if(right->em == STORAGE){
-        pattern = right->u_data.a_storage + sizeof(int);
-    }
-    else {
-        cross_strcpy(debug_inf, "2st should be a VAR or STORAGE\r\n");
+    if (right->em != STORAGE) {
+        cross_strcpy(debug_inf, "2st should be a STORAGE\r\n");
         return new_debug(debug_inf, cross_strlen(debug_inf));
     }
 
-    target = cross_strstr(source, pattern);
+    target = cross_strstr(csp(left), csp(right));
     if (target != NULL) {
       outcome = new_storage(target, cross_strlen(target));
     }
     return outcome;
 }
 
-void *list_operation(void *_left, int slice){
+void *list_operation(void *_left, int slice) {
     type * left = c_car(_left);
     type * right = c_cdr(_left);
 
-    if(slice == 0){
+    if (slice == 0) {
         return primitive_empty;
     }
     else{
@@ -8038,8 +7865,8 @@ void * original_tail(void *_left) {
         return new_debug(debug_inf, cross_strlen(debug_inf));
     }
     val = right->u_data.un_long;
-    while(1){
-        if(val == 0)break;
+    while (1) {
+        if (val == 0)break;
         left = c_cdr(left);
         --val;
     }
@@ -8053,14 +7880,11 @@ void * original_atoi(void *_left) {
 
     outcome = new_object();
     outcome->em = UNLONG;
-    if(left->em == EMPTY){
+    if (left->em == EMPTY) {
         outcome->u_data.un_long = 0;
     }
-    else if(left->em == VAR){
-        outcome->u_data.un_long = cross_atoi(left->u_data.s_var);
-    }
-    else if(left->em == STORAGE){
-        outcome->u_data.un_long = cross_atoi(left->u_data.a_storage + sizeof(int));
+    else if (left->em == STORAGE) {
+        outcome->u_data.un_long = cross_atoi(csp(left));
     }
     else{}
     return outcome;
@@ -8081,27 +7905,22 @@ void * varsort_helper(void *_left, int order) {
 
     contain = (type **)cross_calloc(sizeof(type*), len);
     head = left;
-    while(1){
-        if(head->em == EMPTY)break;
+    while (1) {
+        if (head->em == EMPTY)break;
         contain[i++] = c_car(head);
         head = c_cdr(head);
     }
 
-    if(left->em == VAR && right->em == VAR){
-        mode = 0;
-    }
-    else{
-        mode = 1;
-    }
+    mode = 1;
 
-    for(i = 0; i < len; i++){
-        for(j = i + 1; j < len; j++){
+    for (i = 0; i < len; i++) {
+        for (j = i + 1; j < len; j++) {
             left = contain[i];
             right = contain[j];
-            if(mode == 1){
-                relation = strcmp(left->u_data.a_storage + sizeof(int), right->u_data.a_storage + sizeof(int)) < 0;
-                if(!order)relation = 1 - relation;
-                if( relation){
+            if (mode == 1) {
+                relation = strcmp(csp(left), csp(right)) < 0;
+                if (!order)relation = 1 - relation;
+                if ( relation) {
                     contain[i] = right;
                     contain[j] = left;
                 } 
@@ -8110,7 +7929,7 @@ void * varsort_helper(void *_left, int order) {
             }
         }
     }
-    for(i = 0; i < len; i++) {
+    for (i = 0; i < len; i++) {
         outcome = c_append(outcome, c_cons(c_normal_copy(contain[i]),
                                            primitive_empty));
     }
@@ -8131,40 +7950,38 @@ void * concat_helper(void *_left, char *delim, int ignore_nil) {
     type * left = c_car(_left);
     type * present = NULL;
     type * outcome = primitive_empty;
-    char * response = (char*) cross_calloc(BUF_SIZE, sizeof(char));
+    char * response = (char*) cross_calloc(1024, sizeof(char));
     int    response_length = 0;
     size_t delim_size = cross_strlen(delim);
+    int old_len = 0;
 
-    if(left->em == EMPTY){
+    if (left->em == EMPTY) {
         cross_free(response);
         return outcome;
     }
     else{
-        while(1){
-            if(left->em == EMPTY){
+        while (1) {
+            if (left->em == EMPTY) {
                 break;
             }
             present = c_car(left);
-            if(present->em == EMPTY){
-                if(ignore_nil == 0){
+            if (present->em == EMPTY) {
+                if (ignore_nil == 0) {
                     cross_strcpy(response + response_length, delim);
                     response_length += delim_size;
                 }
             }
             else{
-                if(present->em == UNLONG){
+                if (present->em == UNLONG) {
                     cross_sprintf(response + response_length, "%lu", present->u_data.un_long);
                     response_length = cross_strlen(response);
                 }
-                else if(present->em == VAR){
-                    cross_sprintf(response + response_length, "%s", present->u_data.s_var);
-                    response_length += cross_strlen(present->u_data.s_var);
-                }
-                else if(present->em == STORAGE && (*(int*)(present->u_data.a_storage) != 1)){
+                else if (present->em == STORAGE && (*(int*)(present->u_data.a_storage) != 1)) {
+                    old_len = css(present);
                     cross_memcpy(response + response_length, 
-                                 present->u_data.a_storage + sizeof(int), 
-                                 *(int*)(present->u_data.a_storage) - 1);
-                    response_length += *(int*)(present->u_data.a_storage) - 1;
+                                 csp(present),
+                                 old_len);
+                    response_length += old_len;
                 }
                 else{}
                 cross_strcpy(response + response_length, delim);
@@ -8172,7 +7989,7 @@ void * concat_helper(void *_left, char *delim, int ignore_nil) {
             }
             left = c_cdr(left);
         }
-        if(response_length == 0){
+        if (response_length == 0) {
             cross_free(response);
             return outcome;
         }
@@ -8189,32 +8006,30 @@ void * original_concat(void *_left) {
     type * left = _left;
     type * present = NULL;
     type * outcome = primitive_empty;
-    char * response = (char*) cross_calloc(BUF_SIZE, sizeof(char));
+    char * response = NULL;
     int    response_length = 0;
+    int old_len = 0;
 
-    if(left->em == EMPTY) {
-        cross_free(response);
+    if (left->em == EMPTY) {
         return outcome;
     }
     else{
-        while(1){
-            if(left->em == EMPTY){
+        response = (char*)cross_calloc(1024, sizeof(char));
+        while (1) {
+            if (left->em == EMPTY) {
                 break;
             }
             present = c_car(left);
-            if(present->em == UNLONG) {
+            if (present->em == UNLONG) {
                 cross_sprintf(response + response_length, "%lu", present->u_data.un_long);
-                response_length = cross_strlen(response);
+                response_length = sizeof(present->u_data.un_long);
             }
-            else if(present->em == VAR) {
-                cross_sprintf(response + response_length, "%s", present->u_data.s_var);
-                response_length += cross_strlen(present->u_data.s_var);
-            }
-            else if((present->em == STORAGE) || (present->em == DEBUG)){
+            else if ((present->em == STORAGE) || (present->em == DEBUG)) {
+                old_len = css(present);
                 cross_memcpy(response + response_length, 
-                             present->u_data.a_storage + sizeof(int), 
-                             *(int*)(present->u_data.a_storage) - 1);
-                response_length += *(int*)(present->u_data.a_storage) - 1;
+                             csp(present), 
+                             old_len);
+                response_length += old_len;
                 /*  -1 is very important, because we use direct length, but it's contain tail \0 */
             }
             else{}
@@ -8261,32 +8076,28 @@ void * split_helper(void *_left, char * delim) {
     char * response = NULL;
     int chars_len = 0;
     char debug_inf[256] = "\0", *current = NULL, * next = NULL;
-    if(left->em == EMPTY){
+    if (left->em == EMPTY) {
         return primitive_empty;
     }
-    response = (char*)cross_calloc(BUF_SIZE, sizeof(char));
+    response = (char*)cross_calloc(1024, sizeof(char));
     /*follow code is import ,because strtok would change the source data*/
-    if(left->em == VAR){
-        chars_len = cross_strlen(left->u_data.s_var);
-        cross_memcpy(response, left->u_data.s_var, chars_len);
-    }
-    else if(left->em == STORAGE){
+    if (left->em == STORAGE) {
         chars_len = *(int*)(left->u_data.a_storage);
-        cross_memcpy(response, (left->u_data.a_storage + sizeof(int)), chars_len);
+        cross_memcpy(response, csp(left), chars_len);
     }
     else {
-        cross_strcpy(debug_inf, "split_helper 1st should be a VAR or STORAGE\r\n");
+        cross_strcpy(debug_inf, "split_helper 1st should be a STORAGE\r\n");
         return new_debug(debug_inf, cross_strlen(debug_inf));
     } 
 
     current = response;
-    if(current == NULL || cross_strlen(current) == 0 || (chars_len == 1)){
+    if (current == NULL || cross_strlen(current) == 0 || (chars_len == 1)) {
         cross_free(response);
         return primitive_empty;
     }
 
     next = cross_strstr(current, delim);
-    if(next == NULL){
+    if (next == NULL) {
         outcome = new_storage(current, cross_strlen(current));
         obj = c_append(obj, c_cons(outcome, primitive_empty));
         cross_free(response);
@@ -8296,7 +8107,7 @@ void * split_helper(void *_left, char * delim) {
     obj = c_append(obj, c_cons(outcome, primitive_empty));
 
     current = next + cross_strlen(delim);
-    while((next = cross_strstr(current, delim)) ){
+    while ((next = cross_strstr(current, delim)) ) {
         outcome = new_storage(current, next - current);
         obj = c_append(obj, c_cons(outcome, primitive_empty));
         current = next + cross_strlen(delim);
@@ -8314,18 +8125,12 @@ void * original_split(void *_left) {
     char debug_inf[256] = "\0";
     char* delim = NULL;
 
-    if(left->em == VAR){
-        delim = left->u_data.s_var;
-    }
-    else if(left->em == STORAGE){
-        delim = left->u_data.a_storage + sizeof(int);
-    }
-    else {
-        cross_strcpy(debug_inf, "2st should be a VAR or STORAGE\r\n");
+    if (left->em != STORAGE) {
+        cross_strcpy(debug_inf, "2st should be a STORAGE\r\n");
         return new_debug(debug_inf, cross_strlen(debug_inf));
     }
 
-    return split_helper(_left, delim);
+    return split_helper(_left, csp(left));
 }
 
 void * original_tabsplit(void *_left) {
@@ -8364,34 +8169,24 @@ void * original_strip(void *_left) {
     type * present = c_car(_left);
     char debug_inf[256] = "\0";
     int    response_length = 0;
-
-    if(present->em == VAR){
-        response_length = cross_strlen(present->u_data.s_var);
-        if(present->u_data.s_var[response_length - 1 ] == '\n'){
-            present->u_data.s_var[response_length - 1 ] = '\0';
-        } 
-
-        response_length = cross_strlen(present->u_data.s_var);
-        if(present->u_data.s_var[response_length - 1 ] == '\r'){
-            present->u_data.s_var[response_length - 1 ] = '\0';
-        } 
-
-    }
-    else if(present->em == STORAGE){
-        response_length = *(int*)present->u_data.a_storage + sizeof(int);
-        if(present->u_data.a_storage[response_length - 2 ] == '\n'){
-            present->u_data.a_storage[response_length - 2 ] = '\0';
+    char* material = NULL;
+    if (present->em == STORAGE) {
+        material = csp(present);
+        
+        response_length = css(present);
+        if (material[response_length - 1] == '\n') {
+            material[response_length - 1] = '\0';
             *(int*)present->u_data.a_storage = *(int*)present->u_data.a_storage - 1;
         } 
 
-        response_length = *(int*)present->u_data.a_storage + sizeof(int);
-        if(present->u_data.a_storage[response_length - 2 ] == '\r'){
-            present->u_data.a_storage[response_length - 2 ] = '\0';
+        response_length = css(present);
+        if (material[response_length - 1] == '\r') {
+            material[response_length - 1] = '\0';        
             *(int*)present->u_data.a_storage = *(int*)present->u_data.a_storage - 1;
         } 
     }
     else {
-        cross_strcpy(debug_inf, "1st should be a VAR or STORAGE\r\n");
+        cross_strcpy(debug_inf, "1st should be a STORAGE\r\n");
         return new_debug(debug_inf, cross_strlen(debug_inf));
     }
     return  c_normal_copy(present);
@@ -8408,36 +8203,30 @@ void * original_strdup(void *_left) {
     char debug_inf[256] = "\0";
     int s = 0, d = 0;
   
-    if(present->em == VAR){
-        material = present->u_data.s_var;
-    }
-    else if(present->em == STORAGE){
-        material = present->u_data.a_storage + sizeof(int);
-    }
-    else {
-        cross_strcpy(debug_inf, "1st should be a VAR or STORAGE\r\n");
+    if (present->em != STORAGE) {
+        cross_strcpy(debug_inf, "1st should be a STORAGE\r\n");
         return new_debug(debug_inf, cross_strlen(debug_inf));
     }
 
-    if(start->em != UNLONG) {
+    if (start->em != UNLONG) {
         cross_strcpy(debug_inf, "2st should be a UNLONG\r\n");
         return new_debug(debug_inf, cross_strlen(debug_inf));
     }
-    if(end->em != UNLONG) {
+    if (end->em != UNLONG) {
         cross_strcpy(debug_inf, "3st should be a UNLONG\r\n");
         return new_debug(debug_inf, cross_strlen(debug_inf));
     }
 
     s = start->u_data.un_long, d = end->u_data.un_long;
     if ((s > d) ||
-        (d > (s + BUF_SIZE))) {
+        (d > (s + 1024))) {
         cross_strcpy(debug_inf, "begin or end label error\r\n");
         return new_debug(debug_inf, cross_strlen(debug_inf));
     }
 
-    response = (char*) cross_calloc(BUF_SIZE, sizeof(char));
-    for(i = s; i < d; i++){
-        *(response + j++) = *(material + i);
+    response = (char*) cross_calloc(1024, sizeof(char));
+    for (i = s; i < d; i++) {
+        *(response + j++) = *((char*)csp(present) + i);
     }
     outcome = new_storage(response, d - s);
     cross_free(response);
@@ -8452,21 +8241,17 @@ void * original_tolower(void *_left) {
     int i = 0, j = 0, storage_size = 0, len = 0;
     char debug_inf[256] = "\0";
   
-    if(present->em == VAR){
-        material = present->u_data.s_var;
-        len = cross_strlen(material);
-    }
-    else if(present->em == STORAGE){
-        material = present->u_data.a_storage + sizeof(int);
-        len = *(int*)present->u_data.a_storage - 1;
+    if (present->em == STORAGE) {
+        material = csp(present);
+        len = css(present);
     }
     else {
-        cross_strcpy(debug_inf, "1st should be a VAR or STORAGE\r\n");
+        cross_strcpy(debug_inf, "1st should be a STORAGE\r\n");
         return new_debug(debug_inf, cross_strlen(debug_inf));
     }
 
-    response = (char*)cross_calloc(BUF_SIZE, sizeof(char));
-    for(i = 0; i < len; i++){
+    response = (char*)cross_calloc(1024, sizeof(char));
+    for (i = 0; i < len; i++) {
         *(response + sizeof(int) + j++) = cross_tolower(*(material + i));
     }
 
@@ -8483,21 +8268,17 @@ void * original_toupper(void *_left) {
     int i = 0, j = 0, storage_size = 0, len = 0;
     char debug_inf[256] = "\0";
   
-    if(present->em == VAR){
-        material = present->u_data.s_var;
-        len = cross_strlen(material);
-    }
-    else if(present->em == STORAGE){
-        material = present->u_data.a_storage + sizeof(int);
-        len = *(int*)present->u_data.a_storage - 1;
+    if (present->em == STORAGE) {
+        material = csp(present);
+        len = css(present);
     }
     else {
-        cross_strcpy(debug_inf, "1st should be a VAR or STORAGE\r\n");
+        cross_strcpy(debug_inf, "1st should be a STORAGE\r\n");
         return new_debug(debug_inf, cross_strlen(debug_inf));
     }
 
-    response = (char*)cross_calloc(BUF_SIZE, sizeof(char));
-    for(i = 0; i < len; i++){
+    response = (char*)cross_calloc(1024, sizeof(char));
+    for (i = 0; i < len; i++) {
         *(response + sizeof(int) + j++) = cross_toupper(*(material + i));
     }
 
@@ -8537,8 +8318,8 @@ int close_tcp_socket(int sockfd) {
 
 static void strencode( char* to, char* from ) {
     int tolen;
-    for ( tolen = 0; *from != '\0'; ++from ){
-        if ( isalnum(*from) || strchr( "/_.", *from ) != (char*) 0 ){
+    for ( tolen = 0; *from != '\0'; ++from ) {
+        if ( isalnum(*from) || strchr( "/_.", *from ) != (char*) 0 ) {
             *to = *from;
             ++to;
             ++tolen;
@@ -8558,17 +8339,11 @@ void * original_urlencode(void * _left) {
     unsigned char * source = NULL;
     char   response[1024] = "\0";
 
-    if(left->em == VAR){
-        source = left->u_data.s_var;
-    }
-    else if(left->em == STORAGE){
-        source = left->u_data.a_storage + sizeof(int);
-    }
-    else{
-        color_fprintf(stderr, COLOR_GREEN, "1st --> VAR or STORAGE");
+    if (left->em != STORAGE) {
+        color_fprintf(stderr, COLOR_GREEN, "1st --> STORAGE");
         return primitive_empty;
     }
-    strencode(response, source);
+    strencode(response, csp(left));
     outcome = new_storage(response, strlen(response));
     cross_free(response);
     return outcome;
@@ -8594,7 +8369,7 @@ int peek_mesg(int sockfd, int wait_time, int big_count, int r, int w) {
         FD_SET(sockfd, &efdset);        
         tv.tv_sec = 0;
         tv.tv_usec = wait_time * cycle_time++;
-        if(cycle_time > big_count){
+        if (cycle_time > big_count) {
             status = 0;
             goto out;
         }        
@@ -8603,7 +8378,7 @@ int peek_mesg(int sockfd, int wait_time, int big_count, int r, int w) {
             status = 0;            
             goto out;
         case 0:
-            if(cycle_time > big_count){
+            if (cycle_time > big_count) {
                 status = 0;                
                 goto out;
             }
@@ -8639,7 +8414,7 @@ void * original_alive(void *_left) {
     type * left = c_car(_left);
     char debug_inf[256] = "\0";
 
-    if(left->em != NET) {
+    if (left->em != NET) {
         cross_snprintf(debug_inf, 256, "1st --> NET Type\r\n");
         return new_debug(debug_inf, strlen(debug_inf));
     }
@@ -8656,17 +8431,17 @@ void * original_alive(void *_left) {
 
 void* recv_mesg(int sockfd, int wait_time, int retry) {
     type* outcome = primitive_empty;
-    char* buffer = (char*) cross_calloc(BUF_SIZE, sizeof(char));
-    char* file_buffer = (char*) cross_calloc(BUF_SIZE, sizeof(char));
+    char* buffer = (char*) cross_calloc(1024, sizeof(char));
+    char* file_buffer = (char*) cross_calloc(1024, sizeof(char));
     int file_buffer_count = 0;
-    size_t batch_size = BUF_SIZE - 10;
+    size_t batch_size = 1024 - 10;
 
     int status = peek_mesg(sockfd, wait_time, retry, 1, 0);
     if (status == 1) {
         while (1) {
             status = recv(sockfd, buffer, batch_size - file_buffer_count, 0);
             if (status == -1) {
-                if(file_buffer_count == 0) {
+                if (file_buffer_count == 0) {
                     outcome = new_storage("invalid", 7);
                     goto ok;
                 }
@@ -8720,7 +8495,7 @@ void * original_close(void *_left) {
     return primitive_empty;
 }
 
-void * send_mesg(int sockfd, char* buf, int size){
+void * send_mesg(int sockfd, char* buf, int size) {
     int status = peek_mesg(sockfd, 50000, 2, 0, 1);
     if (status == 2) {
         status = send(sockfd, buf, size, MSG_NOSIGNAL);
@@ -8744,7 +8519,7 @@ void * original_send(void *_left) {
     char debug_inf[256] = "\0";
     FILE * fp = NULL;
 
-    if(left->em != NET) {
+    if (left->em != NET) {
         /*
         cross_snprintf(debug_inf, 256, "1st --> NET Type\r\n");
         return new_debug(debug_inf, strlen(debug_inf));
@@ -8757,33 +8532,23 @@ void * original_send(void *_left) {
     int new_fd = left->u_data.un_long;
     type * right = c_cadr(_left);
     
-    if(right->em == STORAGE) {
-        buf = right->u_data.a_storage + sizeof(int);
-        file_size = *(int*)right->u_data.a_storage - 1;
-        send_mesg(new_fd, buf, file_size);
+    if (right->em == STORAGE) {
+        send_mesg(new_fd, csp(right), css(right));
         outcome = c_normal_copy(left);    
     }
-    else if(right->em == DEBUG) {
-        buf = right->u_data.a_storage + sizeof(int);
-        file_size = *(int*)right->u_data.a_storage - 1;
-        //        outcome = send_mesg(new_fd, buf, file_size);
+    else if (right->em == DEBUG) {
         fp = fdopen(new_fd, "w+");
-        color_fprintf(fp, COLOR_RED, "%s", buf);
+        color_fprintf(fp, COLOR_RED, "%s", csp(right));
         //        fclose(fp);
         fflush(fp);
         outcome = primitive_empty;
     }
-    else if(right->em == VAR) {
-        buf = right->u_data.s_var;
-        send_mesg(new_fd, buf, strlen(buf));
-        outcome = c_normal_copy(left);            
-    }
-    else if(right->em == UNLONG) {
+    else if (right->em == UNLONG) {
         cross_snprintf(int_buf, 256, "%x", right->u_data.un_long);/* can't do this*/
         outcome = send_mesg(new_fd, (char*)&(right->u_data.un_long), sizeof(right->u_data.un_long));
         outcome = c_normal_copy(left);            
     }
-    else if(right->em == EMPTY) {
+    else if (right->em == EMPTY) {
     }    
     else {
         snprintf(debug_inf, 256, "2st INVALID\r\n");
@@ -8802,7 +8567,7 @@ void * original_fdtoint(void *_left) {
     if (left->em == EMPTY) {
         return primitive_empty;
     }
-    if(left->em != NET) {
+    if (left->em != NET) {
         snprintf(debug_inf, 256, "1st --> NET Type\r\n");
         return new_debug(debug_inf, strlen(debug_inf));
     }
@@ -8823,7 +8588,7 @@ void * original_recv(void *_left) {
     if (left->em == EMPTY) {
         return primitive_empty;
     }
-    if(left->em != NET) {
+    if (left->em != NET) {
         snprintf(debug_inf, 256, "1st --> NET Type\r\n");
         return new_debug(debug_inf, strlen(debug_inf));
     }
@@ -8862,7 +8627,7 @@ void * original_recv(void *_left) {
     outcome = recv_mesg(new_fd, wait_time, retry);
     if (right->em == EMPTY) {
         if ((outcome->em == STORAGE) &&
-                 strcmp(outcome->u_data.a_storage + sizeof(int), "invalid")) {
+            strcmp(csp(outcome), "invalid")) {
             if (last_not_ok > 0) {
                 last_not_ok--; 
             }
@@ -8944,7 +8709,7 @@ int connect_host(int *new_socket, char *host_name, unsigned short remote_port) {
     }
 
     *new_socket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-    if (*new_socket == -1){
+    if (*new_socket == -1) {
         return -1;
     }
     struct timeval ti;
@@ -8956,7 +8721,7 @@ int connect_host(int *new_socket, char *host_name, unsigned short remote_port) {
     fcntl(*new_socket, F_SETFL,flags | O_NONBLOCK);
     int status = connect(*new_socket, (struct sockaddr*)&server, sizeof(struct sockaddr_in));
     if (status != 0) {
-        if(errno != EINPROGRESS) {
+        if (errno != EINPROGRESS) {
             fcntl(*new_socket,F_SETFL,flags & ~O_NONBLOCK);
             cross_fprintf(stderr, "connect error :%s\n", strerror(errno));
             return 0;
@@ -9020,18 +8785,12 @@ void * original_dns(void *_left) {
     char * material = NULL;
     char debug_inf[256] = "\0";
   
-    if(present->em == VAR){
-        material = present->u_data.s_var;
-    }
-    else if(present->em == STORAGE){
-        material = present->u_data.a_storage + sizeof(int);
-    }
-    else {
-        snprintf(debug_inf, 256, "1st should be a VAR or STORAGE\r\n");
+    if (present->em != STORAGE) {
+        snprintf(debug_inf, 256, "1st should be a STORAGE\r\n");
         return new_debug(debug_inf, strlen(debug_inf));
     }
 
-    snprintf(debug_inf, 256, "%s", dns(material));
+    snprintf(debug_inf, 256, "%s", dns(csp(present)));
     return new_storage(debug_inf, strlen(debug_inf));   /* not  new_debug, it's true value */
 }
 
@@ -9112,19 +8871,13 @@ void * original_connect(void *_left) {
     char file[256] = "\0";
     char debug_inf[256] = "\0";
 
-    if(right->em == VAR){
-        url = (char*)right->u_data.s_var;
-    }
-    else if(right->em == STORAGE){
-        url = (char*)(right->u_data.a_storage) + sizeof(int);
-    }
-    else{
+    if (right->em != STORAGE) {
         snprintf(debug_inf, 256, "url format error.\r\n");
         return new_debug(debug_inf, strlen(debug_inf));
     }
 
-    outcome = handleurl(url, host, &port, file);
-    if(outcome->em == DEBUG) {
+    outcome = handleurl(csp(right), host, &port, file);
+    if (outcome->em == DEBUG) {
         return outcome;
     } 
     result = connect_host(&sockfd, host, port);
@@ -9145,7 +8898,6 @@ void * original_bind(void *_left) {
     int sockfd;
     int port;
     int result = -1;
-    char * ip = NULL;
     char debug_inf[256] = "\0";
 
     type * ip_type = c_cadr(_left);
@@ -9153,9 +8905,7 @@ void * original_bind(void *_left) {
         snprintf(debug_inf, 256, "port number error.\r\n");
         return new_debug(debug_inf, strlen(debug_inf));
     }
-    ip = ip_type->u_data.a_storage + sizeof(int);
-
-    if (!bind_host(&sockfd, ip, port)) {
+    if (!bind_host(&sockfd, csp(ip_type), port)) {
         snprintf(debug_inf, 256, "bind host error.\r\n");
         return new_debug(debug_inf, strlen(debug_inf));
     }
@@ -9225,25 +8975,26 @@ void * event_worker(void * _lambda, void *_right) {
     void** _env = (void**)&m_env;
     lambda = _lambda;
 
-    result = lookup((char *)(lambda->u_data.s_var),
+    result = lookup(csp(lambda),
+                    css(lambda),                    
                     global_lambda);
     if (result.u_data._expr == NULL) {
-        snprintf(debug_inf, 256, "first lambda can't found %s\r\n", lambda->u_data.s_var);
+        snprintf(debug_inf, 256, "first lambda can't found %s\r\n", csp(lambda));
         return new_debug(debug_inf, strlen(debug_inf));
     } 
 
     *_env = result._env;
     forth_find = (long)result.u_data._expr;
     if (forth_find != 0) {
-        code_result = lookup((char *)this,
+        code_result = lookup((char *)this, cross_strlen(this),
                              global_code);
         if (code_result._env) {
             forth_code = (void**)code_result.u_data._expr;
         }
 
-        stream_result = lookup((char *)this,
+        stream_result = lookup((char *)this, cross_strlen(this),
                                global_stream);
-        if (stream_result._env){
+        if (stream_result._env) {
             forth_code_ipc = (long)stream_result._env;
         }
 
@@ -9356,7 +9107,7 @@ static int ae_select_poll(ae_event_loop *eventLoop, struct timeval *tvp) {
                 }
             }
             if (fe->mask & AE_WRITABLE) {
-                if(FD_ISSET(j,&state->_wfds)) {
+                if (FD_ISSET(j,&state->_wfds)) {
                     mask |= AE_WRITABLE;
                 }
             }
@@ -9463,11 +9214,11 @@ void * original_aedel(void *_left) {
     entry result;
 
     name = c_car(_left);
-    if(name->em == VAR) {
-        if(!strcmp(name->u_data.s_var, "read")){
+    if (name->em == STORAGE) {
+        if (!strcmp(csp(name), "read")) {
             mask = AE_READABLE;
         }
-        else if(!strcmp(name->u_data.s_var, "write")){
+        else if (!strcmp(csp(name), "write")) {
             mask = AE_WRITABLE;
         }
         else {
@@ -9477,7 +9228,7 @@ void * original_aedel(void *_left) {
     }
 
     left = c_cadr(_left);
-    if(left->em == EVENT){
+    if (left->em == EVENT) {
         obj = (ae_event_loop *)left->u_data.un_long;
     }
     else {
@@ -9486,7 +9237,7 @@ void * original_aedel(void *_left) {
     }
 
     right = c_caddr(_left);
-    if (right->em == NET){
+    if (right->em == NET) {
         sockfd = right->u_data.un_long;
     }
     else {
@@ -9500,7 +9251,7 @@ void * original_aedel(void *_left) {
     }
 
     fe = &obj->events[sockfd];
-    if (fe->mask == AE_NONE){
+    if (fe->mask == AE_NONE) {
         snprintf(debug_inf, 256, "fe mask error, AE_NONE\r\n");
         return new_debug(debug_inf, strlen(debug_inf));
     }
@@ -9516,17 +9267,18 @@ void * original_aedel(void *_left) {
         obj->maxfd = j;
     }
     left = fe->lambda;
-    result = lookup((char *)(left->u_data.s_var),
+    result = lookup(csp(left),
+                    css(left),                    
                     global_lambda);
     if (result.u_data._expr == NULL) {
-        snprintf(debug_inf, 256, "lambda lambda can't be found %s\r\n", left->u_data.s_var);
+        snprintf(debug_inf, 256, "lambda lambda can't be found %s\r\n", csp(left));
         return new_debug(debug_inf, strlen(debug_inf));
     } 
     gc(result._env);
 
-    global_lambda = freeentry(left->u_data.s_var, global_lambda);
+    global_lambda = freeentry(csp(left), css(left), global_lambda);
     obj->worker.del(obj, sockfd, mask);
-    cross_fprintf(stderr, "aedel socket is %d %s\r\n", sockfd, left->u_data.s_var);
+    cross_fprintf(stderr, "aedel socket is %d %s\r\n", sockfd, csp(left));
     gc(left);
 
     outcome = new_object();
@@ -9564,11 +9316,11 @@ void * original_aeadd(void *_left) {
     char debug_inf[256] = "\0";
 
     name = c_car(_left);
-    if(name->em == VAR){
-        if(!strcmp(name->u_data.s_var, "read")){
+    if (name->em == STORAGE) {
+        if (!strcmp(csp(name), "read")) {
             mask = AE_READABLE;
         }
-        else if(!strcmp(name->u_data.s_var, "write")){
+        else if (!strcmp(csp(name), "write")) {
             mask = AE_WRITABLE;
         }
         else {
@@ -9578,7 +9330,7 @@ void * original_aeadd(void *_left) {
     }
 
     left = c_caddr(_left);
-    if(left->em == EVENT) {
+    if (left->em == EVENT) {
         obj = (ae_event_loop *)left->u_data.un_long;
     }
     else {
@@ -9588,10 +9340,10 @@ void * original_aeadd(void *_left) {
 
     left = c_cadr(c_cddr(_left));
 
-    if(left->em == NET) {
+    if (left->em == NET) {
         sockfd = left->u_data.un_long;
     }
-    else if(left->em == EMPTY) {
+    else if (left->em == EMPTY) {
         snprintf(debug_inf, 256, "socket value is empty\r\n");
         return new_debug(debug_inf, strlen(debug_inf));
     }
@@ -9708,7 +9460,7 @@ void * original_aecreate(void *_left) {
     char debug_inf[256] = "\0";
 
     left = c_car(_left);
-    sprintf(mode, "%s", left->u_data.s_var);
+    sprintf(mode, "%s", csp(left));
     if (!strcmp(mode, "select")) {
 #ifdef MYSELECT
         worker.create = ae_select_create;
@@ -9718,7 +9470,7 @@ void * original_aecreate(void *_left) {
         worker.poll = ae_select_poll;
 #endif
     }
-    else if(!strcmp(mode, "epoll")){
+    else if (!strcmp(mode, "epoll")) {
 #ifdef MYEPOLL
         worker.create = ae_epoll_create;
         worker.free = ae_epoll_free;
@@ -9756,8 +9508,9 @@ void remove_lambda(void *_left) {
     entry result;
     void * _env = NULL;
 
-    if (cross_strlen(left->u_data.s_var) == ARABIC) {
-        result = lookup((char *)(left->u_data.s_var),
+    if (cross_strlen(csp(left)) == ARABIC) {
+        result = lookup(csp(left),
+                        css(left),                        
                         global_lambda);
         if (result.u_data._expr != NULL) {
             _env = result._env;
@@ -9766,7 +9519,7 @@ void remove_lambda(void *_left) {
             else {
                 gc(_env);
             }
-            global_lambda = freeentry(left->u_data.s_var, global_lambda);
+            global_lambda = freeentry(csp(left), css(left), global_lambda);
         }
     }
 }
@@ -9878,13 +9631,13 @@ void * original_atwait(void *_left) {
     int wait_sec = 1;
     char debug_inf[256] = "\0";
 
-    if(left->em != LIST) {
+    if (left->em != LIST) {
         cross_strcpy(debug_inf, "at least have one parameter \r\n");
         return new_debug(debug_inf, cross_strlen(debug_inf));
     }
 
     left = c_car(_left);
-    if(left->em == TIME){
+    if (left->em == TIME) {
         timeLoop = (at_time_loop *)left->u_data.un_long;
     }
     else{
@@ -10042,13 +9795,12 @@ typedef struct type_info {
 } type_info;
 
 void * var_type(char * name) {
+    char buf[256] = "\0";
     int i = 0;
-    type * outcome = new_object();
-    outcome->em = VAR;
     for (i = 0; i < ARABIC; i++) {
-        *(outcome->u_data.s_var + i) = *(name + i);
+        *(buf + i) = *(name + i);
     }
-    return outcome;
+    return new_storage(buf, strlen(buf));
 }
 
 void * c_find_var_value_help(void * _left, void * _right) {
@@ -10058,7 +9810,7 @@ void * c_find_var_value_help(void * _left, void * _right) {
         return NULL;
     }
     t = c_car(right);
-    if (!strcmp(left->u_data.s_var, ((type *)c_car(t))->u_data.s_var)) {
+    if (!strcmp(csp(left), csp(c_car(t)))) {
         return c_cadr(t);
     } 
     else {
@@ -10076,23 +9828,15 @@ void * c_find_var_value(void * _left, void * _env) {
         env = c_cdr (env);
     }
 
-
-    result = lookup((char *) (left->u_data.s_var), global_define);
+    result = lookup(csp(left),
+                    css(left),
+                    global_define);
     mid_expr = result.u_data._expr;
     if (mid_expr == NULL) {
     } 
     else {
         return mid_expr;
     }
-
-    result = lookup((char *)(left->u_data.s_var), global_var);
-    mid_expr = result.u_data._expr;
-    if (mid_expr == NULL) {
-    } 
-    else {
-        return mid_expr;
-    }
-
     return NULL;
 }
 
@@ -10254,11 +9998,19 @@ void * original_help(void * _left);
         ORIGINAL_CON(system, 1)
         ORIGINAL_CON(exe, 100)
         ORIGINAL_CON(fload, 1)
-        ORIGINAL_CON(for_longs, 1)
-        ORIGINAL_CON(dump_longs, 1)
         ORIGINAL_CON(qsort, 1)
         ORIGINAL_CON(bsearch, 2)
+        ORIGINAL_CON(seq, 2)
+        ORIGINAL_CON(geq, 1)
+        ORIGINAL_CON(exchange, 1)        
+        ORIGINAL_CON(add_long, 2)
+        ORIGINAL_CON(add_ptr, 2)
+        ORIGINAL_CON(remove_long, 1)
+        ORIGINAL_CON(remove_ptr, 1)
+        ORIGINAL_CON(top_long, 1)
+        ORIGINAL_CON(top_ptr, 1)                                
         ORIGINAL_CON(idx_longs, 2)
+        ORIGINAL_CON(idx_ptrs, 2)        
         ORIGINAL_CON(size_longs, 1)
         ORIGINAL_CON(funload, 2)
         ORIGINAL_CON(fopen, 2)
@@ -10300,7 +10052,6 @@ void * original_help(void * _left);
 /*for milestone ,2014.6.7*/
 type_info original_type[] = { 
     /*basic*/
-    {"setq", SETQ}, 
     {"define", DEFINE}, 
     {"defun", DEFUN}, 
     {"if", IF}, 
@@ -10321,12 +10072,6 @@ type_info original_type[] = {
     {"isstop", ISSTOP}, 
     {"self", SELF}, 
     /*low-level structure*/
-    {"press", PRESS}, 
-    {"whole", WHOLE}, 
-    {"combi", COMBI}, 
-    {"exchange", EXCHANGE}, 
-    {"top", TOP}, 
-    {"eject", EJECT}, 
     {"join", JOIN}, 
     /*all forth special symbol*/
 #ifdef FORTH
@@ -10372,42 +10117,11 @@ void * original_help(void * _left) {
     return left_fprint(stderr, new_storage(debug_inf, cross_strlen(debug_inf)));
 }
 
-void init_primitive(void) {
-    int sign = 0;
-    while (1) {
-        if (!strcmp("", normal_fun[sign].name)) {
-            break;
-        }
-        if (lookup_primitive(normal_fun[sign].name, global_primitive) != NULL) {
-            color_fprintf(stderr, COLOR_GREEN, "%s alread\r\n", normal_fun[sign].name);
-        }
-
-        assign_primitive(normal_fun[sign].name, normal_fun[sign].address,
-                         &global_primitive);
-        sign++;
-    }
-
-}
-
 /*similar  to  the  macro  dispatch*/
-void * c_set_global_var_value(void * _name, void * value) {
-    type *name = _name;
-    entry result = lookup((char *)(name->u_data.s_var), global_var);
-    type * mid_expr = result.u_data._expr;
-    if (mid_expr == NULL) {
-    } 
-    else {
-        gc(mid_expr);
-        global_var = freeentry((char *)(name->u_data.s_var), global_var); /*add by rosslyn  2015/6/27 doing flexhash*/
-    }
-
-    assign((char *)(name->u_data.s_var), value, NULL, &global_var);
-    return c_normal_copy(name);
-}
 
 void * c_set_global_define_value(void * _name, void * value) {
     type * name = _name;
-    assign((char *) (name->u_data.s_var), value, primitive_empty, &global_define);
+    assign(csp(name), css(name), value, primitive_empty, &global_define);
     return c_normal_copy(name);
 }
 
@@ -10416,8 +10130,8 @@ void * c_find_defmacro_arg(void * name, void * mem) {
     type * label;
     while (_env) {
         label = c_car(_env);
-        if (!strcmp(((type *)c_car (label))->u_data.s_var,
-                    ((type *)name)->u_data.s_var)) {
+        if (!strcmp((csp(c_car (label))),
+                    csp(name))) {        
             return c_cadr(label);
         }
         _env = c_cdr (_env);
@@ -10429,8 +10143,8 @@ void * c_find_defmacro_expr(void * name, void * mem) {
     type * label;
     while (_env) {
         label = c_car(_env);
-        if (!strcmp(((type *)c_car (label))->u_data.s_var,
-                    ((type *)name)->u_data.s_var)) {
+        if (!strcmp((csp(c_car (label))),
+                    csp(name))) {
             return c_caddr(label);
         }
         _env = c_cdr(_env);
@@ -10442,10 +10156,14 @@ int c_find_defun_arg(void * _name, void ** _arg) {
     type * mid_expr;
     entry result;
     type *name = _name;
-    result = lookup((char *)(name->u_data.s_var), global_defun);
+    result = lookup(csp(name),
+                    css(name),                    
+                    global_defun);
     mid_expr = result.u_data._expr;
     if (mid_expr == NULL) {
-        result = lookup((char *)(name->u_data.s_var), global_lambda);
+        result = lookup(csp(name),
+                        css(name),                        
+                        global_lambda);
         mid_expr = result.u_data._expr;
         if (mid_expr == NULL) {
             *_arg = NULL;
@@ -10464,10 +10182,14 @@ int c_find_defun_expr(void * _name, void ** _expr) {
     type * mid_expr;
     entry result;
     type *name = _name;
-    result = lookup((char *)(name->u_data.s_var), global_defun);
+    result = lookup(csp(name),
+                    css(name),                    
+                    global_defun);
     mid_expr = result.u_data._expr;
     if (mid_expr == NULL) {
-        result = lookup((char *)(name->u_data.s_var), global_lambda);
+        result = lookup(csp(name),
+                        css(name),                        
+                        global_lambda);
         mid_expr = result.u_data._expr;
         if (mid_expr == NULL) {
             *_expr = NULL;
@@ -10645,9 +10367,9 @@ void * iterate_address(void *_left, void * forth_code[], long forth_code_ipc) {
     type *left = _left, *right = NULL;
     for (i = 0; i < forth_code_ipc; i++) {
         right = forth_code[i];
-        if(right && right->em == EFDEFUN){
+        if (right && right->em == EFDEFUN) {
             right = forth_code[i+1];
-            if (right && right->em == VAR &&  !strcmp(left->u_data.s_var, right->u_data.s_var)) {
+            if (right && right->em == STORAGE &&  !strcmp(csp(left), csp(right))) {
                 return (void*)(i + 1);
             }
         }
@@ -10683,9 +10405,9 @@ void* fetch_code_skip_address(void *_left, native_operator em, linear_contain* s
     type *left = _left, *right = NULL;
     for (i = 0; i < skip_obj->num;) {
         right = skip_obj->contain[i];
-        if(right && right->em == em){
+        if (right && right->em == em) {
             right = skip_obj->contain[i+1];
-            if (right && right->em == VAR &&  !strcmp(left->u_data.s_var, right->u_data.s_var)) {
+            if (right && right->em == STORAGE &&  !strcmp(csp(left), csp(right))) {
                 return skip_obj->contain[i + 2];
             }
         }
@@ -10707,7 +10429,7 @@ void fix_unfix_code(void *_left, int real_address, void* forth_code[], linear_co
     type *left = _left, *right = NULL;
     for (i = 0; i < forth_code_unfix_ipc;) {
         right = forth_code_unfix[i];
-        if (!strcmp(left->u_data.s_var, right->u_data.s_var)) {
+        if (!strcmp(csp(left), csp(right))) {
             forth_code[((type*)(forth_code_unfix[i + 1]))->u_data.un_long] = linear_push(obj, long_type(real_address));
         }
         i += 2;
@@ -10721,9 +10443,9 @@ void* dispatch_core(char* that);
 void * original_eval(void *_left) {
     type* outcome = primitive_empty;
     type* left = _left;
+    type* right = NULL;
     type* present = NULL;
     int size = 0, socket = -1;
-    char* a_storage = NULL;
     char debug_inf[256] = "\0";
     char wrap_buf[1024 * 20] = {0};
 
@@ -10738,17 +10460,16 @@ void * original_eval(void *_left) {
         return new_debug(debug_inf, cross_strlen(debug_inf));
     }
 
-    a_storage  = left->u_data.a_storage + sizeof(int);
-    size = *(int*)left->u_data.a_storage;
+    size = css(left);
     if ((size == 0) || (size == 1)) {
         cross_strcpy(debug_inf, "first parameter length is 0");
         return new_debug(debug_inf, cross_strlen(debug_inf));
     }
 
-    left = c_cdr(_left);
-    if (left->em != EMPTY) {
-        present = c_car(left);
-        if(present->em == NET){
+    right = c_cdr(_left);
+    if (right->em != EMPTY) {
+        present = c_car(right);
+        if (present->em == NET) {
             socket = present->u_data.un_long;
         }
     }
@@ -10756,14 +10477,14 @@ void * original_eval(void *_left) {
         socket = 2;
     }
 
-    cross_fprintf(stderr, "eval material is\r\n%s\r\n", a_storage);
-    cross_sprintf(wrap_buf, "(progn %s)", a_storage);
+    cross_fprintf(stderr, "eval material is\r\n%s\r\n", csp(left));
+    cross_sprintf(wrap_buf, "(progn %s)", csp(left));
     present = evaljit(wrap_buf, socket);
     if (present->em == DEBUG) {
         return present;
     }
 
-    outcome = dispatch_core(present->u_data.s_var);
+    outcome = dispatch_core(csp(present));
     gc(present);
     return outcome;
 }
@@ -10886,34 +10607,34 @@ void * execution(char* this, int _step) {
 
     entry stream_result, stack_result, frame_result, code_result, result, lambda_result;
 
-    stream_result = lookup((char *)this,
+    stream_result = lookup((char *)this, cross_strlen(this),
                            global_stream);
 
-    stack_result = lookup((char *)this,
+    stack_result = lookup((char *)this, cross_strlen(this),
                           global_stack);
 
-    frame_result = lookup((char *)this,
+    frame_result = lookup((char *)this, cross_strlen(this),
                           global_frame);
 
-    code_result = lookup((char *)this,
+    code_result = lookup((char *)this, cross_strlen(this),
                          global_code);
 
-    if (stream_result._env){
+    if (stream_result._env) {
         begin = (long)stream_result.u_data._expr;
         end = (long)stream_result._env;
     }
 
-    if (code_result._env){
+    if (code_result._env) {
         forth_code = (void**)code_result.u_data._expr;
         _env = (void**)code_result._env;
     }
 
-    if (stack_result._env){
+    if (stack_result._env) {
         forth_return_ipc_inner = (long)stack_result.u_data._expr;
         forth_return_array_inner = stack_result._env;
     }
 
-    if (frame_result._env){
+    if (frame_result._env) {
         forth_data_ipc_inner = (long)frame_result.u_data._expr;
         forth_data_array_inner = frame_result._env;
     }
@@ -10927,19 +10648,19 @@ void * execution(char* this, int _step) {
             else {
                 typology = primitive_cont;
 
-                assign(this, (void *)i,
+                assign(this, cross_strlen(this), (void *)i,
                        (void*)end,
                        &global_stream);
 
-                assign(this, (void *)forth_code,
+                assign(this, cross_strlen(this), (void *)forth_code,
                        _env,
                        &global_code);
 
-                assign(this, (void *)forth_return_ipc_inner,
+                assign(this, cross_strlen(this), (void *)forth_return_ipc_inner,
                        (void*)forth_return_array_inner,
                        &global_stack);
 
-                assign(this, (void *)forth_data_ipc_inner,
+                assign(this, cross_strlen(this), (void *)forth_data_ipc_inner,
                        (void*)forth_data_array_inner,
                        &global_frame);
 
@@ -10948,34 +10669,31 @@ void * execution(char* this, int _step) {
         }
         typology = forth_code[i];
         switch (typology->em) {
-        case EFSETQ:
-            forth_data_array_inner[forth_data_ipc_inner - 1] = c_set_global_var_value(
-                                                                                      forth_code[++i], forth_data_array_inner[forth_data_ipc_inner - 1]);
-            break;
         case EFDEFINE:
             forth_data_array_inner[forth_data_ipc_inner - 1] = c_set_global_define_value(
-                                                                                         forth_code[++i], forth_data_array_inner[forth_data_ipc_inner - 1]);
+                                                                                         forth_code[++i],
+                                                                                         forth_data_array_inner[forth_data_ipc_inner - 1]);
             break;
         case EFQUOTE:
             forth_data_array_inner[forth_data_ipc_inner++] = c_normal_copy(forth_code[++i]);
             break;
         case EFQUOTEX:
-            while(1){
+            while (1) {
                 i++;
                 typology = forth_code[i];
-                if(typology->em == EFQUOTEXEND)break;
+                if (typology->em == EFQUOTEXEND)break;
             }
             break;
-        case VAR:
+        case STORAGE:
             present = c_find_var_value(typology, *_env);
-            if(present == NULL) {
-                cross_sprintf(debug_inf, "execution var %s value is None\r\n", typology->u_data.s_var);
+            if (present == NULL) {
+                cross_sprintf(debug_inf, "execution variable %s is None\r\n", csp(typology));
                 typology = new_debug(debug_inf, cross_strlen(debug_inf));
-                /* maybe mem leak , as para before VAR now in stack */
+                /* maybe mem leak , as para before storage now in stack */
                 goto yield_out;
             }
             else if (present->ref_count < 1) {
-                cross_sprintf(debug_inf, "object %s already dead\r\n", typology->u_data.s_var);
+                cross_sprintf(debug_inf, "object %s already dead\r\n", csp(typology));
                 typology = new_debug(debug_inf, cross_strlen(debug_inf));
                 goto yield_out;
             }
@@ -10983,7 +10701,6 @@ void * execution(char* this, int _step) {
                 forth_data_array_inner[forth_data_ipc_inner++] = c_normal_copy(present);
             } 
             break;
-        case STORAGE:
         case NOP:
         case EMPTY:
         case UNLONG:
@@ -11004,13 +10721,13 @@ void * execution(char* this, int _step) {
                 while (1) {
                     if (!strcmp("", normal_fun[i].name)) {
                         cross_sprintf(debug_inf, "EFFUN find \r\n%s\r\n",
-                                      present->u_data.a_storage + sizeof(int));                        
+                                      csp(present));
                         break;
                     }
-                    if(normal_fun[i].address == typology->u_data.f_callback){
+                    if (normal_fun[i].address == typology->u_data.f_callback) {
                         cross_sprintf(debug_inf, "EFFUN find %s \r\n%s\r\n",
                                       normal_fun[i].name,
-                                      present->u_data.a_storage + sizeof(int));                        
+                                      csp(present));
                         break;
                     }
                     i++;
@@ -11024,19 +10741,19 @@ void * execution(char* this, int _step) {
                 i--;
                 typology = present;
 
-                assign(this, (void *)i,
+                assign(this, cross_strlen(this), (void *)i,
                        (void*)end,
                        &global_stream);
 
-                assign(this, (void *)forth_code,
+                assign(this, cross_strlen(this), (void *)forth_code,
                        _env,
                        &global_code);
 
-                assign(this, (void *)forth_return_ipc_inner,
+                assign(this, cross_strlen(this), (void *)forth_return_ipc_inner,
                        (void*)forth_return_array_inner,
                        &global_stack);
 
-                assign(this, (void *)forth_data_ipc_inner,
+                assign(this, cross_strlen(this), (void *)forth_data_ipc_inner,
                        (void*)forth_data_array_inner,
                        &global_frame);
 
@@ -11050,28 +10767,30 @@ void * execution(char* this, int _step) {
             break;
         case EFSTOP:
             typology = forth_data_array_inner[forth_data_ipc_inner - 1];
-            assign(this, (void *) STREAM_STOP,
+            assign(this, cross_strlen(this), (void *) STREAM_STOP,
                    (void *) STREAM_STOP,
                    &global_stream);
             c_unbindvars(_env);
 
             stack_result = lookup((char *) this,
+                                  cross_strlen(this),                                  
                                   global_stack);
             frame_result = lookup((char *) this,
+                                  cross_strlen(this),
                                   global_frame);
 
-            if (stack_result._env && frame_result._env){
+            if (stack_result._env && frame_result._env) {
                 forth_return_ipc_inner = (long)stack_result.u_data._expr;
                 forth_return_array_inner = stack_result._env;
                 cross_free(forth_return_array_inner);
-                global_stack = freeentry(this, global_stack);
+                global_stack = freeentry(this, cross_strlen(this), global_stack);
 
                 forth_data_ipc_inner = (long)frame_result.u_data._expr;
                 forth_data_array_inner = frame_result._env;
                 cross_free(forth_data_array_inner);
-                global_frame = freeentry(this, global_frame);
+                global_frame = freeentry(this, cross_strlen(this), global_frame);
 
-                global_lambda = freeentry(this, global_lambda);
+                global_lambda = freeentry(this, cross_strlen(this), global_lambda);
             }
             else{
                 cross_fprintf(stderr, "exit efstop entry error \r\n");
@@ -11085,53 +10804,53 @@ void * execution(char* this, int _step) {
             left = c_normal_copy(c_caar(typology));
             present = c_cadar(typology);
 
-            if(present->u_data.un_long == 1) {
-                assign(this, (void *) STREAM_STOP,
+            if (present->u_data.un_long == 1) {
+                assign(this, cross_strlen(this), (void *) STREAM_STOP,
                        (void *) STREAM_STOP,
                        &global_stream);
                 c_unbindvars(_env);
 
-                stack_result = lookup((char *)this,
+                stack_result = lookup((char *)this, cross_strlen(this),
                                       global_stack);
 
-                frame_result = lookup((char *)this,
+                frame_result = lookup((char *)this, cross_strlen(this),
                                       global_frame);
 
-                lambda_result = lookup((char *)this,
+                lambda_result = lookup((char *)this, cross_strlen(this),
                                       global_lambda);
 
                 if (stack_result._env) {
                     forth_return_array_inner = stack_result._env;
                     cross_free(forth_return_array_inner);
-                    global_stack = freeentry(this, global_stack);
+                    global_stack = freeentry(this, cross_strlen(this), global_stack);
                 }
 
                 if (frame_result._env) {
                     forth_data_array_inner = frame_result._env;
                     cross_free(forth_data_array_inner);
-                    global_frame = freeentry(this, global_frame);
+                    global_frame = freeentry(this, cross_strlen(this), global_frame);
                 }
 
                 if (lambda_result._env) {
                     cross_free(lambda_result._env);
-                    global_lambda = freeentry(this, global_lambda);
+                    global_lambda = freeentry(this, cross_strlen(this), global_lambda);
                 }
                 gc(typology);   /*never come back, so we need delete it. */
             }
             else {
-                assign(this, (void *)(i + 1),
+                assign(this, cross_strlen(this), (void *)(i + 1),
                        (void*)1000000,
                        &global_stream);
 
-                assign(this, (void *)forth_code,
+                assign(this, cross_strlen(this), (void *)forth_code,
                        _env,
                        &global_code);
 
-                assign(this, (void *)forth_return_ipc_inner,
+                assign(this, cross_strlen(this), (void *)forth_return_ipc_inner,
                        (void*)forth_return_array_inner,
                        &global_stack);
 
-                assign(this, (void *)forth_data_ipc_inner,
+                assign(this, cross_strlen(this), (void *)forth_data_ipc_inner,
                        (void*)forth_data_array_inner,
                        &global_frame);
             }
@@ -11142,12 +10861,12 @@ void * execution(char* this, int _step) {
             typology = forth_data_array_inner[forth_data_ipc_inner - 1];
             present = c_car(typology);
             forth_data_array_inner[forth_data_ipc_inner - 1] = 
-                execution(present->u_data.s_var, BIG_STEP);
+                execution(csp(present), BIG_STEP);
             gc(typology);
             break;
         case EFEOFSTDIN:
             typology = forth_data_array_inner[forth_data_ipc_inner - 1];
-            if( !feof(stdin)){
+            if ( !feof(stdin)) {
                 present = long_type(0);
             }
             else{
@@ -11158,10 +10877,9 @@ void * execution(char* this, int _step) {
             gc(typology);
             break;
         case EFSTDIN:
-            /*some input too long, so use BUF_SIZE instead of 1024*/
             typology = forth_data_array_inner[forth_data_ipc_inner - 1];
-            response = (char*)cross_calloc(BUF_SIZE, sizeof(char));
-            fgets(response, BUF_SIZE, stdin); 
+            response = (char*)cross_calloc(1024, sizeof(char));
+            fgets(response, 1024, stdin); 
             present = new_storage(response, cross_strlen(response));
             cross_free(response);
             forth_data_array_inner[forth_data_ipc_inner - 1] = present;
@@ -11170,17 +10888,19 @@ void * execution(char* this, int _step) {
         case EFISSTOP:
             typology = forth_data_array_inner[forth_data_ipc_inner - 1];
             present = c_car(typology);
-            stream_result = lookup((char *)(present->u_data.s_var),
+            stream_result = lookup(csp(present),
+                                   css(present),                                   
                                    global_stream);
 
-            if (!stream_result._env){
+            if (!stream_result._env) {
                 forth_data_array_inner[forth_data_ipc_inner - 1] = long_type(0);
             }
             else{
                 j = (long)stream_result._env;
-                if(j == STREAM_STOP){
+                if (j == STREAM_STOP) {
                     forth_data_array_inner[forth_data_ipc_inner - 1] = long_type(1);
-                    global_stream = freeentry((char *)(present->u_data.s_var), global_stream);
+                    global_stream = freeentry(csp(present), css(present),
+                                              global_stream);
                 }
                 else{
                     forth_data_array_inner[forth_data_ipc_inner - 1] = long_type(0);
@@ -11198,10 +10918,10 @@ void * execution(char* this, int _step) {
             break;
         case EFSAPPLYXBEGIN:
             present = primitive_empty;
-            while(1){
+            while (1) {
                 i++;
                 typology = forth_code[i];
-                if(typology->em == EFSAPPLYX)break;
+                if (typology->em == EFSAPPLYX)break;
                 present = c_append(present, c_cons(typology, primitive_empty));
             }
             forth_data_array_inner[forth_data_ipc_inner++] = present;
@@ -11237,7 +10957,7 @@ void * execution(char* this, int _step) {
             break;
         case EFSELF:
             typology = forth_data_array_inner[--forth_data_ipc_inner];
-            result = lookup((char *)this,
+            result = lookup((char *)this, cross_strlen(this),
                             global_lambda);
             if (!result.u_data._expr) {
                 color_fprintf(stderr, COLOR_YELLOW, "efself impossible efself \r\n");
@@ -11267,25 +10987,25 @@ void * execution(char* this, int _step) {
             break;
         case EFPROGNMID:
             /* for yield special situation*/
-            if(forth_data_ipc_inner >= 1){
+            if (forth_data_ipc_inner >= 1) {
                 gc(forth_data_array_inner[--forth_data_ipc_inner]);
             }
             break;
         case EFDEFUN:
             /*statement ends*/
             forth_data_array_inner[forth_data_ipc_inner++] = c_normal_copy( forth_code[i+1]);
-            while(1){
+            while (1) {
                 i++;
                 typology = forth_code[i];
-                if(typology->em == EFDEFUNEND)break;
+                if (typology->em == EFDEFUNEND)break;
             }
             break;
         case EFDEFMACRO:
             forth_data_array_inner[forth_data_ipc_inner++] = c_normal_copy( forth_code[i+1]);
-            while(1){
+            while (1) {
                 i++;
                 typology = forth_code[i];
-                if(typology->em == EFDEFUNEND)break;
+                if (typology->em == EFDEFUNEND)break;
             }
             break;
         case EFDEFUNTAIL:
@@ -11307,17 +11027,17 @@ void * execution(char* this, int _step) {
             j = i;
             i = forth_return_array_inner[--forth_return_ipc_inner] + 2;
             forth_return_array_inner[forth_return_ipc_inner++] = global_forth_code_ipc;
-            while(1){
+            while (1) {
                 typology = global_forth_code[i];
 
-                if(typology->em == LIST ){
+                if (typology->em == LIST ) {
                     present = c_car(typology);
-                    if(present->em == EVAL){
+                    if (present->em == EVAL) {
                         global_forth_code[global_forth_code_ipc++] = localeval(c_cadr(typology), _env);
                     }
                 }
-                else if(typology->em == VAR ){
-                    if(eval_flag){
+                else if (typology->em == STORAGE) {
+                    if (eval_flag) {
                         present = c_find_var_value(typology, *_env);
                         linear_init(&recycle_obj);
                         linear_init(&skip_obj);
@@ -11327,13 +11047,13 @@ void * execution(char* this, int _step) {
                         global_forth_code[global_forth_code_ipc++] = c_normal_copy(typology);
                     }
                 }
-                else if(typology->em == EFQUOTEX){
+                else if (typology->em == EFQUOTEX) {
                     eval_flag = 0;
                 }
-                else if(typology->em == EFQUOTEXEND){
+                else if (typology->em == EFQUOTEXEND) {
                     eval_flag = 1;
                 }
-                else if(typology->em == EFDEFMACROEND){
+                else if (typology->em == EFDEFMACROEND) {
                     global_forth_code[global_forth_code_ipc++] = primitive_efdefunend;
                     break;
                 }
@@ -11346,97 +11066,20 @@ void * execution(char* this, int _step) {
             execution_instance(_env, global_forth_code, i, global_forth_code_ipc);
             i = j;
             break;
-        case EFPRESS:
-            typology = forth_code[++i];
-            result = lookup((char *) (typology->u_data.s_var), global_var);
-            if(result.u_data._expr == NULL){
-                assign((char *) (typology->u_data.s_var),
-                       c_cons(forth_data_array_inner[--forth_data_ipc_inner],
-                              primitive_empty), NULL, &global_var);
-            }
-            else{
-                assign((char *) (typology->u_data.s_var),
-                       c_cons(forth_data_array_inner[--forth_data_ipc_inner],
-                              result.u_data._expr), NULL, &global_var);
-            }
-
-            forth_data_array_inner[forth_data_ipc_inner++] = primitive_empty;
-            break;
         case EFJOIN:
             typology = forth_code[++i];
-            result = lookup((char *) (typology->u_data.s_var), global_var);
-            if(result.u_data._expr == NULL) {
+            result = lookup(csp(typology),
+                            css(typology),
+                            global_var);
+            if (result.u_data._expr == NULL) {
                 forth_data_array_inner[forth_data_ipc_inner++] = primitive_empty;
             }
             else {
-                assign((char *)(typology->u_data.s_var),
+                assign(csp(typology), css(typology), 
                        c_append(result.u_data._expr,
                                 c_cons(forth_data_array_inner[--forth_data_ipc_inner], primitive_empty)), NULL,
                        &global_var);
                 forth_data_array_inner[forth_data_ipc_inner++] = primitive_empty;
-            }
-            break;
-        case EFWHOLE:
-            typology = forth_code[++i];
-            result = lookup((char *) (typology->u_data.s_var), global_var);
-            if (result.u_data._expr == NULL) {
-                forth_data_array_inner[forth_data_ipc_inner++] = primitive_empty;
-            }
-            else{
-                forth_data_array_inner[forth_data_ipc_inner++] = c_normal_copy(result.u_data._expr);
-            }
-            break;
-        case EFEXCHANGE:
-            typology = forth_code[++i];
-            result = lookup((char *) (typology->u_data.s_var), global_var);
-            assign((char *) (typology->u_data.s_var),
-                   c_cons(c_cadr(result.u_data._expr),
-                          c_cons(c_car(result.u_data._expr),
-                                 c_cddr(result.u_data._expr))), NULL,
-                   &global_var);
-            gc_atom(c_cdr(result.u_data._expr));
-            gc_atom(result.u_data._expr);
-            forth_data_array_inner[forth_data_ipc_inner++] = primitive_empty;
-            break;
-        case EFCOMBI:
-            typology = forth_code[++i];
-            result = lookup((char *) (typology->u_data.s_var), global_var);
-            assign((char *) (typology->u_data.s_var),
-                   c_cons(
-                          c_append(c_cadr(result.u_data._expr),
-                                   c_cons(c_car(result.u_data._expr), primitive_empty)),
-                          c_cddr(result.u_data._expr)), NULL, &global_var);
-            gc_atom(c_cdr(result.u_data._expr));
-            gc_atom(result.u_data._expr);
-            forth_data_array_inner[forth_data_ipc_inner++] = primitive_empty;
-            break;
-        case EFTOP:
-            typology = forth_code[++i];
-            result = lookup((char *) (typology->u_data.s_var), global_var);
-            present = result.u_data._expr;
-            if (present == NULL || present->em == EMPTY) {
-                forth_data_array_inner[forth_data_ipc_inner++] = primitive_empty;
-            } 
-            else {
-                forth_data_array_inner[forth_data_ipc_inner++] = c_normal_copy(
-                                                                             c_car(present));
-            }
-            break;
-        case EFEJECT:
-            /* follow code doesn't used  eval (left,  ...) style ,  as the statement would copy  the used default,  but we can used the essential code*/
-            typology = forth_code[++i];
-            result = lookup((char *) (typology->u_data.s_var), global_var);
-            present = result.u_data._expr;
-            if (present == NULL || present->em == EMPTY) {
-                assign((char *) (typology->u_data.s_var), primitive_empty,
-                       NULL, &global_var);
-                forth_data_array_inner[forth_data_ipc_inner++] = primitive_empty;
-            } 
-            else {
-                assign((char *) (typology->u_data.s_var), c_cdr(present), NULL,
-                       &global_var);
-                forth_data_array_inner[forth_data_ipc_inner++] = c_car(present);
-                gc_atom(present);
             }
             break;
         case EFFUNCALLEND:
@@ -11447,17 +11090,17 @@ void * execution(char* this, int _step) {
                 cross_fprintf(stderr, "forth_data_ipc_inner  is  %ld  \r\n", forth_data_ipc_inner);
             } 
             else {
-                if (present->em != VAR) {
-                    cross_strcpy(debug_inf, "FUNCALL name is INVALID, --> VAR\r\n");
+                if (present->em != STORAGE) {
+                    cross_strcpy(debug_inf, "FUNCALL name is INVALID, --> STORAGE\r\n");
                     typology = new_debug(debug_inf, cross_strlen(debug_inf));
                     gc(present);
                     goto yield_out;
                 }
-                result = lookup((char *) (present->u_data.s_var),
+                result = lookup(csp(present), css(present), 
                                 global_lambda);
                 if (result.u_data._expr == NULL) {
                     if (iterate_address(present, forth_code, end) == NULL) {
-                        cross_sprintf(debug_inf, "FUNCALL name %s doesn't exist\r\n", present->u_data.s_var);
+                        cross_sprintf(debug_inf, "FUNCALL name %s doesn't exist\r\n", csp(present));
                         typology = new_debug(debug_inf, cross_strlen(debug_inf));
                         gc(present);
                         goto yield_out;
@@ -11504,23 +11147,18 @@ void * execution(char* this, int _step) {
         case EFLAMBDA:
             present = random_name();
             if (((type*)(*_env))->em == EMPTY) {
-                assign(present->u_data.s_var, (void *) (i + 2),
+                assign(csp(present), css(present), (void *) (i + 2),
                        c_cons(primitive_empty, primitive_empty),
                        &global_lambda);
             } 
             else {
-                /*
-                  assign(present->u_data.s_var, (void *) (i + 2),
-                  c_cons(c_normal_copy(c_car(*_env)), c_normal_copy(c_cdr(*_env))),
-                  &global_lambda);
-                */
                 if (((type*)(c_cdr(*_env)))->em == EMPTY) {
-                    assign(present->u_data.s_var, (void *) (i + 2),
+                    assign(csp(present), css(present), (void *) (i + 2),
                            c_list(c_normal_copy(c_car(*_env)), 0),
                            &global_lambda);
                 }
                 else {
-                    assign(present->u_data.s_var, (void *) (i + 2),
+                    assign(csp(present), css(present), (void *) (i + 2),
                            c_list(c_normal_copy(c_car(*_env)), c_normal_copy(c_cadr(*_env)), 0),
                            &global_lambda);
                 }
@@ -11552,19 +11190,19 @@ void * execution(char* this, int _step) {
 
                 typology = primitive_cont;
 
-                assign(this, (void *)i + 1,
+                assign(this, cross_strlen(this), (void *)i + 1,
                        (void*)end,
                        &global_stream);
 
-                assign(this, (void *)forth_code,
+                assign(this, cross_strlen(this), (void *)forth_code,
                        _env,
                        &global_code);
 
-                assign(this, (void *)forth_return_ipc_inner,
+                assign(this, cross_strlen(this), (void *)forth_return_ipc_inner,
                        (void*)forth_return_array_inner,
                        &global_stack);
 
-                assign(this, (void *)forth_data_ipc_inner,
+                assign(this, cross_strlen(this), (void *)forth_data_ipc_inner,
                        (void*)forth_data_array_inner,
                        &global_frame);
 
@@ -11581,10 +11219,10 @@ void * execution(char* this, int _step) {
                 *m_env = c_cons(c_normal_copy(c_car(*_env)), primitive_empty);
             }
 
-            assign(present->u_data.s_var, (void *) (i + 2),
+            assign(csp(present), css(present), (void *) (i + 2),
                    m_env, &global_lambda);
 
-            execution_install(present->u_data.s_var, m_env, forth_code, i + 3, 100000);
+            execution_install(csp(present), m_env, forth_code, i + 3, 100000);
             forth_data_array_inner[forth_data_ipc_inner++] = present;
             i = ((type*)forth_code[i + 1])->u_data.un_long;
             break;
@@ -11614,9 +11252,9 @@ void* check_status(char* this) {
     int status = 0;
 
     entry status_result;
-    status_result = lookup((char *)this,
+    status_result = lookup((char *)this, cross_strlen(this),
                            global_status);
-    if (status_result.u_data._expr){
+    if (status_result.u_data._expr) {
         typology = (type*)status_result.u_data._expr;
         status = (long)status_result._env;
         if (status == 1000) {
@@ -11639,7 +11277,7 @@ void at_ok_pthread() {
     color_fprintf(stderr, COLOR_RED, "pthread num:%d\r\n", at_num(&global_timer_loop));
     color_fprintf(stderr, COLOR_RED, "global_timer_count:%d\r\n", global_timer_count);
    
-    while (at_num(&global_timer_loop) > 1){
+    while (at_num(&global_timer_loop) > 1) {
         te = at_top(&global_timer_loop);
         typology = check_status(te->lambda);
         if (typology == NULL) {
@@ -11664,10 +11302,10 @@ void* dispatch_core(char* that) {
     long priority = 0;
     int thread_num = 1;
 
-    while(1) {
+    while (1) {
         typology = check_status(that);
         if (typology) {
-            freeentry(that, global_status);            
+            freeentry(that, cross_strlen(that), global_status);            
             return typology;
         }
 
@@ -11712,7 +11350,7 @@ void* dispatch_core(char* that) {
             task = (dispatch_info*)cross_malloc(sizeof(*task));
             task->priority = priority;
             task->this = (char*)cross_malloc(strlen(this) + 1);
-            cross_memcpy(task->this, this, strlen(this));
+            cross_memcpy(task->this, this, cross_strlen(this));
             task->socket = socket;
             task->address = task_new->address;
             task->para = para;
@@ -11734,7 +11372,8 @@ void* dispatch_core(char* that) {
                 global_timer_count = global_timer_count + 1;
     
                 at_ok_pthread();
-                assign(this, (void *)typology,
+                assign(this, cross_strlen(this),
+                       (void *)typology,
                        (void*)1000,
                        &global_status);
         
@@ -11765,19 +11404,23 @@ void execution_install(char* this, void** _env, void* forth_code[], long begin, 
     forth_data_array_inner = (void **)cross_calloc(sizeof(void*), 2000);    
     forth_data_ipc_inner = 0;
 
-    assign(this, (void *)begin,
+    assign(this, cross_strlen(this),
+           (void *)begin,
            (void*)end,
            &global_stream);
 
-    assign(this, (void *)forth_code,
+    assign(this, cross_strlen(this),
+           (void *)forth_code,
            _env,
            &global_code);
 
-    assign(this, (void *)forth_return_ipc_inner,
+    assign(this, cross_strlen(this),
+           (void *)forth_return_ipc_inner,
            (void*)forth_return_array_inner,
            &global_stack);
 
-    assign(this, (void *)forth_data_ipc_inner,
+    assign(this, cross_strlen(this),
+           (void *)forth_data_ipc_inner,
            (void*)forth_data_array_inner,
            &global_frame);
 
@@ -11794,25 +11437,25 @@ void execution_uninstall(char* this, original_callback address, void* para) {
         color_fprintf(stderr, COLOR_RED, "unexpect happens\r\n");
     }
 
-    stack_result = lookup((char *)this,
+    stack_result = lookup((char *)this, cross_strlen(this),
                           global_stack);
 
-    frame_result = lookup((char *)this,
+    frame_result = lookup((char *)this, cross_strlen(this),
                           global_frame);
 
-    if (stack_result._env){
+    if (stack_result._env) {
         cross_free(stack_result._env);
     }
 
-    if (frame_result._env){
+    if (frame_result._env) {
         cross_free(frame_result._env);
     }
 
-    freeentry(this, global_stack);
-    freeentry(this, global_frame);
+    freeentry(this, cross_strlen(this), global_stack);
+    freeentry(this, cross_strlen(this), global_frame);
 
-    freeentry(this, global_stream);
-    freeentry(this, global_code);
+    freeentry(this, cross_strlen(this), global_stream);
+    freeentry(this, cross_strlen(this), global_code);
 
     return;
 }
@@ -11831,7 +11474,7 @@ void prepare_dispatch(char* this,
 
     task = (dispatch_info*)cross_malloc(sizeof(*task));
     task->this = (char*)cross_malloc(strlen(this) + 1);
-    cross_memcpy(task->this, this, strlen(this));
+    cross_memcpy(task->this, this, cross_strlen(this));
     task->socket = socket;
     task->address = address;
     task->para = para;
@@ -11844,7 +11487,7 @@ void* execution_instance(void** _env, void* forth_code[], long begin, long end) 
     type* present = NULL;
     char this[256] = "\0";
     present = random_name();
-    cross_sprintf(this, "%s%s", present->u_data.s_var, ":instance");
+    cross_sprintf(this, "%s%s", csp(present), ":instance");
     gc(present);
     execution_install(this, _env, forth_code, begin, end);
 
@@ -11860,7 +11503,7 @@ void* execution_instance(void** _env, void* forth_code[], long begin, long end) 
     return present;
 }
 
-void modify_fun_content(type *right){
+char* ruin(type *right) {
     int signx = 0;
 
     signx = 0;
@@ -11868,28 +11511,26 @@ void modify_fun_content(type *right){
         if (!strcmp("", normal_fun[signx].name)) {
             break;
         }
-        if(normal_fun[signx].address == right->u_data.f_callback){
-            cross_strcpy(right->u_data.s_var, normal_fun[signx].name);
-            break;
+        if (normal_fun[signx].address == right->u_data.f_callback) {
+            return normal_fun[signx].name;
         }
         signx++;
     }
 }
 
-void  modify_fun_content_x(type *left){
+original_callback resurrection(char* meta, int len) {
     int signx = 0;
-
-    signx = 0;
+    meta[len] = '\0';
     while (1) {
         if (!strcmp("", normal_fun[signx].name)) {
             break;
         }
-        if(!strcmp(normal_fun[signx].name, left->u_data.s_var)){
-            left->u_data.f_callback = normal_fun[signx].address;
-            break;
+        if (!strcmp(normal_fun[signx].name, meta)) {
+            return normal_fun[signx].address;
         }
         signx++;
     }
+    signx = 10000;
 }
 
 void write_forth_code_helper(unsigned char* forth_code_serial, type* right, 
@@ -11901,16 +11542,17 @@ void write_forth_code_helper(unsigned char* forth_code_serial, type* right,
     type *left = NULL;
     unsigned char * special = NULL;
     unsigned long value = 0;
+    char* meta = NULL;
 
-    if(!right) {
+    if (!right) {
         color_fprintf(stderr, COLOR_RED, "exit global_forth_code  null occurs, offset is %d, please check \r\n");
         forth_code_serial[forth_code_serial_ipc++] = (unsigned  char )'$';
         /*it can cover the error problem*/
     }
-    else if(right->em == LIST) {
+    else if (right->em == LIST) {
         forth_code_serial[forth_code_serial_ipc++] = (unsigned char)EFLISTBEGIN;
-        while(1) {
-            if(right->em == EMPTY) {
+        while (1) {
+            if (right->em == EMPTY) {
                 break;
             }
             left = c_car(right);
@@ -11921,19 +11563,11 @@ void write_forth_code_helper(unsigned char* forth_code_serial, type* right,
     }
     else if (right->em == FUN) {
         realvalue = *(type*)c_normal_copy(right);
-        modify_fun_content(&realvalue);
+        meta = ruin(&realvalue);
         forth_code_serial[forth_code_serial_ipc++] = (unsigned  char )FUN;
-        len = cross_strlen(realvalue.u_data.s_var);
+        len = cross_strlen(meta);
         forth_code_serial[forth_code_serial_ipc++] = (unsigned  char )len;
-        network_encryption((unsigned char *)realvalue.u_data.s_var, len, (unsigned char* )buffer_trans);
-        cross_memcpy(forth_code_serial + forth_code_serial_ipc, buffer_trans, len);
-        forth_code_serial_ipc += len;
-    }
-    else if (right->em == VAR) {
-        forth_code_serial[forth_code_serial_ipc++] = (unsigned  char)VAR;
-        len = cross_strlen(right->u_data.s_var);
-        forth_code_serial[forth_code_serial_ipc++] = (unsigned  char)len;
-        network_encryption((unsigned char *)right->u_data.s_var, len, (unsigned char*)buffer_trans);
+        network_encryption(meta, len, (unsigned char* )buffer_trans);
         cross_memcpy(forth_code_serial + forth_code_serial_ipc, buffer_trans, len);
         forth_code_serial_ipc += len;
     }
@@ -11943,8 +11577,8 @@ void write_forth_code_helper(unsigned char* forth_code_serial, type* right,
 
         *(int*)(forth_code_serial + forth_code_serial_ipc) = len;
         forth_code_serial_ipc += sizeof(int);
-        special = (unsigned char*)cross_calloc(BUF_SIZE, sizeof(unsigned char));
-        network_encryption((unsigned char *)(right->u_data.a_storage) + sizeof(int), len, (unsigned char *)special);
+        special = (unsigned char*)cross_calloc(1024, sizeof(unsigned char));
+        network_encryption((unsigned char *)csp(right), len, (unsigned char *)special);
         cross_memcpy(forth_code_serial + forth_code_serial_ipc, special, len);
         cross_free(special);
         forth_code_serial_ipc += len;
@@ -12012,10 +11646,10 @@ void *  read_forth_code_helper(unsigned char *forth_code_serial, int *_i, char *
 
     left = primitive_empty;
     realvalue = forth_code_serial[i++];
-    if(realvalue == (unsigned char)EFLISTBEGIN) {
+    if (realvalue == (unsigned char)EFLISTBEGIN) {
         while (1) {
             realvalue = forth_code_serial[i];
-            if(realvalue == (unsigned char)EFLISTEND) {
+            if (realvalue == (unsigned char)EFLISTEND) {
                 i++; 
                 break;
             }
@@ -12025,16 +11659,15 @@ void *  read_forth_code_helper(unsigned char *forth_code_serial, int *_i, char *
         right = left;
     }
     else {
-        if(realvalue == (unsigned char)FUN) {
+        if (realvalue == (unsigned char)FUN) {
             right = new_object();
             right->em = FUN;
             len = forth_code_serial[i++];
             network_decryption((unsigned char *)forth_code_serial + i, len, (unsigned char *)buffer_trans);
-            cross_memcpy(right->u_data.s_var, buffer_trans, len);
+            right->u_data.f_callback = resurrection(buffer_trans, len);
             i += len;
-            modify_fun_content_x(right);
         }
-        else if(realvalue == (unsigned char)UNLONG) {
+        else if (realvalue == (unsigned char)UNLONG) {
             right = new_object();
             right->em = UNLONG;
             len = forth_code_serial[i++];
@@ -12044,15 +11677,7 @@ void *  read_forth_code_helper(unsigned char *forth_code_serial, int *_i, char *
             }
             right->u_data.un_long = value;
         }
-        else if(realvalue == (unsigned char)VAR) {
-            right = new_object();
-            right->em = VAR;
-            len = forth_code_serial[i++];
-            network_decryption((unsigned char *)forth_code_serial + i, len, (unsigned char* )buffer_trans);
-            cross_memcpy(right->u_data.s_var, buffer_trans, len);
-            i += len;
-        }
-        else if(realvalue == (unsigned char)STORAGE) {
+        else if (realvalue == (unsigned char)STORAGE) {
             right = new_object();
             right->em = STORAGE;
             len = *(int*)(forth_code_serial + i);
@@ -12102,10 +11727,10 @@ void read_forth_code(char * file_tmp_name) {
     return;
 }
 
-void * execution_strategy(void** _env, void *forth_code[], long begin, long end){
+void * execution_strategy(void** _env, void *forth_code[], long begin, long end) {
     char file_tmp_name[256] = "";
 
-    if(cross_strlen(global_filename) == 0) {
+    if (cross_strlen(global_filename) == 0) {
         /*for  debug reason, normal change 0 to 1*/
         return execution_instance(_env, forth_code, begin, end);
     }
@@ -12130,7 +11755,7 @@ void * execution_forth(void *forth_code[] , long begin , long end) {
         typology = forth_code[i];
         switch (typology->em) {
         case EMPTY:
-        case VAR:
+        case STORAGE:
             /*special  for  display information,related to the ZFQUOTE*/
         case UNLONG:
             forth_data_array[forth_data_ipc++] = c_normal_copy(typology);
@@ -12305,7 +11930,7 @@ void eval_forth(void * _left, void ** _env, void *forth_code[], long *_forth_cod
          left = c_cdr(left);
          goto label;
          break;
-     case VAR:
+     case STORAGE:
          forth_code[forth_code_ipc++] = primitive_zfsapply;
          if (fetch_code_skip_address(present, EFDEFUN) == NULL) {
              forth_code_unfix[forth_code_unfix_ipc++] = present;
@@ -12349,6 +11974,9 @@ void eval_forth(void * _left, void ** _env, void *forth_code[], long *_forth_cod
 }
 #endif
 
+#define   IMPLEMENT_PREFIX(PTR)    primitive_##PTR
+#define   IMPLEMENT_INIT(PTR)   forth_code[forth_code_ipc++] = IMPLEMENT_PREFIX(PTR); binary_return_label--; goto popjreturn;
+
 void * eval_impl(void * _left, void ** _env, void * forth_code[], long *_forth_code_ipc, linear_contain* recycle_obj, linear_contain* skip_obj) {
     type * present, *outcome = NULL;
     type * left = _left;
@@ -12364,7 +11992,6 @@ void * eval_impl(void * _left, void ** _env, void * forth_code[], long *_forth_c
         goto popjreturn;
         break;
     case STORAGE:
-    case VAR:
         forth_code[forth_code_ipc++] = left;
         goto popjreturn;
         break;
@@ -12435,15 +12062,6 @@ void * eval_impl(void * _left, void ** _env, void * forth_code[], long *_forth_c
             left = c_cadr(present);
             goto label;
             break;
-        case SETQ:
-            /*only  consider  one  key -value  situation , 2013.5.16*/
-            batch_write_circuit(c_cadr (left),
-                                binary_return_array + (binary_return_label++));
-            batch_write_circuit(primitive_evsetq,
-                                binary_return_array + (binary_return_label++));
-            left = c_caddr(left);
-            goto label;
-            break;
         case DEFINE:
             /*only  consider  one  key -value  situation , 2013.5.16*/
             batch_write_circuit(c_cadr (left),
@@ -12465,36 +12083,6 @@ void * eval_impl(void * _left, void ** _env, void * forth_code[], long *_forth_c
             batch_write_circuit(c_cdr (left),
                                 binary_return_array + (binary_return_label++));
             goto evprogn;
-        case EJECT:
-            left = c_cadr(left);
-            forth_code[forth_code_ipc++] = primitive_efeject;
-            forth_code[forth_code_ipc++] = left;
-            goto popjreturn;
-            break;
-        case WHOLE:
-            left = c_cadr(left);
-            forth_code[forth_code_ipc++] = primitive_efwhole;
-            forth_code[forth_code_ipc++] = left;
-            goto popjreturn;
-            break;
-        case EXCHANGE:
-            left = c_cadr(left);
-            forth_code[forth_code_ipc++] = primitive_efexchange;
-            forth_code[forth_code_ipc++] = left;
-            goto popjreturn;
-            break;
-        case COMBI:
-            left = c_cadr(left);
-            forth_code[forth_code_ipc++] = primitive_efcombi;
-            forth_code[forth_code_ipc++] = left;
-            goto popjreturn;
-            break;
-        case TOP:
-            left = c_cadr(left);
-            forth_code[forth_code_ipc++] = primitive_eftop;
-            forth_code[forth_code_ipc++] = left;
-            goto popjreturn;
-            break;
         case JOIN:
             /* follow code doesn't used  eval (left, ...) style , as the statement would copy  the used default, but we can used the essential code*/
             outcome = c_caddr(left);
@@ -12503,19 +12091,6 @@ void * eval_impl(void * _left, void ** _env, void * forth_code[], long *_forth_c
             batch_write_circuit(left,
                                 binary_return_array + (binary_return_label++));
             batch_write_circuit(primitive_evjoin,
-                                binary_return_array + (binary_return_label++));
-            left = outcome;
-            goto label;
-            break;
-        case PRESS:
-            /* follow code doesn't used  eval (left, ...) style , as the statement would copy  the used default, but we can used the essential code*/
-            outcome = c_caddr(left);
-            left = c_cadr(left);
-
-            batch_write_circuit(left,
-                                binary_return_array + (binary_return_label++));
-
-            batch_write_circuit(primitive_evpress,
                                 binary_return_array + (binary_return_label++));
             left = outcome;
             goto label;
@@ -12532,6 +12107,7 @@ void * eval_impl(void * _left, void ** _env, void * forth_code[], long *_forth_c
             break;
         case SLEEP:
         case FUN:
+            /*
             batch_write_circuit(present,
                                 binary_return_array + (binary_return_label++));
             batch_write_circuit(c_cdr(left),
@@ -12539,6 +12115,7 @@ void * eval_impl(void * _left, void ** _env, void * forth_code[], long *_forth_c
             forth_code[forth_code_ipc++] = primitive_empty;
             goto evargs;
             break;
+            */
         case EOFSTDIN:
         case STDIN:
         case NEXT:
@@ -12570,7 +12147,7 @@ void * eval_impl(void * _left, void ** _env, void * forth_code[], long *_forth_c
             left = c_caddr(present);
             goto label;
             break;
-        case VAR:
+        case STORAGE:
             if (1) {
                 if (fetch_code_skip_address(present, EFDEFUN, skip_obj)) {
                     batch_write_circuit(c_car(left),
@@ -12583,7 +12160,7 @@ void * eval_impl(void * _left, void ** _env, void * forth_code[], long *_forth_c
                 else if (fetch_code_skip_address(present, EFDEFMACRO, skip_obj)) {
                     forth_code[forth_code_ipc++] = primitive_efsapplyxbegin;
                     outcome = c_cdr(left);
-                    while(outcome->em != EMPTY){
+                    while (outcome->em != EMPTY) {
                         forth_code[forth_code_ipc++] = c_car(outcome);
                         outcome = c_cdr(outcome);
                     }
@@ -12652,11 +12229,6 @@ void * eval_impl(void * _left, void ** _env, void * forth_code[], long *_forth_c
         }
     } 
     goto popjreturn;
- evsetq: 
-    forth_code[forth_code_ipc++] = primitive_efsetq;
-    forth_code[forth_code_ipc++] = batch_read_circuit(
-                                                      binary_return_array + (--binary_return_label));
-    goto popjreturn;
  evdefine: 
     forth_code[forth_code_ipc++] = primitive_efdefine;
     forth_code[forth_code_ipc++] = batch_read_circuit(
@@ -12666,12 +12238,6 @@ void * eval_impl(void * _left, void ** _env, void * forth_code[], long *_forth_c
     left = batch_read_circuit(
                               binary_return_array + --binary_return_label);
     forth_code[forth_code_ipc++] = primitive_efjoin;
-    forth_code[forth_code_ipc++] = left;
-    goto popjreturn;
- evpress: 
-    left = batch_read_circuit(
-                              binary_return_array + --binary_return_label);
-    forth_code[forth_code_ipc++] = primitive_efpress;
     forth_code[forth_code_ipc++] = left;
     goto popjreturn;
  evprognmid: 
@@ -12729,9 +12295,11 @@ void * eval_impl(void * _left, void ** _env, void * forth_code[], long *_forth_c
     batch_write_circuit(primitive_evfuncallmid,
                         binary_return_array + binary_return_label++);
     goto label;
- evargslast: 
-    switch (((type *) batch_read_circuit(
-                                         binary_return_array + binary_return_label - 1))->em) {
+ evargslast:
+    left = (type *) batch_read_circuit(
+                                       binary_return_array + binary_return_label - 1);
+    
+    switch (left->em) {
     case EVFUNCALL:
         binary_return_label--;
         goto evfuncall;
@@ -12746,47 +12314,30 @@ void * eval_impl(void * _left, void ** _env, void * forth_code[], long *_forth_c
                                                           binary_return_array + binary_return_label - 1);
         binary_return_label--;
         goto popjreturn;
-        break;
     case SLEEP:
-        forth_code[forth_code_ipc++] = primitive_efsleep;
-        binary_return_label--;
-        goto popjreturn;
-        break;
+        IMPLEMENT_INIT(efsleep)        
+        break;                
     case STOP:
-        forth_code[forth_code_ipc++] = primitive_efstop;
-        binary_return_label--;
-        goto popjreturn;
-        break;
+        IMPLEMENT_INIT(efstop)
+        break;                        
     case YIELD:
-        forth_code[forth_code_ipc++] = primitive_efyield;
-        binary_return_label--;
-        goto popjreturn;
-        break;
+        IMPLEMENT_INIT(efyield)
+        break;                                
     case NEXT:
-        forth_code[forth_code_ipc++] = primitive_efnext;
-        binary_return_label--;
-        goto popjreturn;
-        break;
+        IMPLEMENT_INIT(efnext)
+        break;                                        
     case ISSTOP:
-        forth_code[forth_code_ipc++] = primitive_efisstop;
-        binary_return_label--;
-        goto popjreturn;
-        break;
+        IMPLEMENT_INIT(efisstop)
+        break;                                                
     case EOFSTDIN:
-        forth_code[forth_code_ipc++] = primitive_efeofstdin;
-        binary_return_label--;
-        goto popjreturn;
-        break;
+        IMPLEMENT_INIT(efeofstdin)
+        break;                                                        
     case STDIN:
-        forth_code[forth_code_ipc++] = primitive_efstdin;
-        binary_return_label--;
-        goto popjreturn;
-        break;
+        IMPLEMENT_INIT(efstdin)
+        break;                                                        
     case SELF:
-        forth_code[forth_code_ipc++] = primitive_efself;
-        binary_return_label--;
-        goto popjreturn;
-        break;
+        IMPLEMENT_INIT(efself)
+        break;                                                        
     default:
         goto sapply;
         break;
@@ -12805,7 +12356,7 @@ void * eval_impl(void * _left, void ** _env, void * forth_code[], long *_forth_c
     forth_code[forth_code_ipc++] = primitive_efsapply;
     if (fetch_code_skip_address(left, EFDEFUN, skip_obj) == NULL) {
         forth_code_unfix[forth_code_unfix_ipc++] = left;
-        cross_sprintf(debug_inf, "function name %s doesn't exist\r\n", left->u_data.s_var);
+        cross_sprintf(debug_inf, "function name %s doesn't exist\r\n", csp(left));
         forth_code_unfix[forth_code_unfix_ipc++] = linear_push(recycle_obj, long_type(forth_code_ipc));
         forth_code[forth_code_ipc++] = new_debug(debug_inf, cross_strlen(debug_inf));
     } 
@@ -12836,8 +12387,9 @@ void * eval_impl(void * _left, void ** _env, void * forth_code[], long *_forth_c
         *_forth_code_ipc = forth_code_ipc;
         return  NULL;
     }
-    switch (((type *) batch_read_circuit(
-                                         binary_return_array + --binary_return_label))->em) {
+    left = batch_read_circuit(
+                              binary_return_array + --binary_return_label);
+    switch (left->em) {
     case EVFUNCALLMID:
         goto evfuncallmid;
         break;
@@ -12859,9 +12411,6 @@ void * eval_impl(void * _left, void ** _env, void * forth_code[], long *_forth_c
     case EVMACRO:
         goto macro;
         break;
-    case EVSETQ:
-        goto evsetq;
-        break;
     case EVDEFINE:
         goto evdefine;
         break;
@@ -12873,9 +12422,6 @@ void * eval_impl(void * _left, void ** _env, void * forth_code[], long *_forth_c
         break;
     case EVUNBINDVARS:
         goto unbindvars;
-        break;
-    case EVPRESS:
-        goto evpress;
         break;
     case EVJOIN:
         goto evjoin;
@@ -12927,15 +12473,15 @@ void * eval_impl(void * _left, void ** _env, void * forth_code[], long *_forth_c
                 break;
             }
 
-            if(present->em == EFDEFUN){
+            if (present->em == EFDEFUN) {
                 forth_code[forth_code_ipc++] = primitive_efdefuntail; 
                 /*if  go this way, efendif fix_code_address wouldn't be  nessary,but keep it also harmless*/
                 break;
             }
-            else if(present->em == EVPROGNEND){
+            else if (present->em == EVPROGNEND) {
                 skip++;
             }
-            else if(present->em == EFENDIF){
+            else if (present->em == EFENDIF) {
                 skip += 2;
             }
             else{
@@ -12977,7 +12523,7 @@ void * eval_impl(void * _left, void ** _env, void * forth_code[], long *_forth_c
     return primitive_empty;
 }
 
-void * analyse_forth(void *forth_code[], long begin, long end){
+void * analyse_forth(void *forth_code[], long begin, long end) {
     long i = 0;
     char debug_inf[256] = "\0";
     type *right = NULL;
@@ -13004,7 +12550,7 @@ void * localeval(void * _left, void ** _env) {
     linear_init(&skip_obj);
     eval_impl(_left, _env, local_forth_code, &local_forth_code_ipc, &recycle_obj, &skip_obj);
     status = analyse_forth(local_forth_code, begin, local_forth_code_ipc); 
-    if(status->em == DEBUG){
+    if (status->em == DEBUG) {
         return status;
     }
     else{
@@ -13012,7 +12558,7 @@ void * localeval(void * _left, void ** _env) {
     }
 }
 
-void* globaleval(void * _left, void ** _env){
+void* globaleval(void * _left, void ** _env) {
     type * status = NULL;
     long  begin = global_forth_code_ipc;
     linear_contain recycle_obj;
@@ -13021,7 +12567,7 @@ void* globaleval(void * _left, void ** _env){
     linear_init(&skip_obj);
     eval_impl(_left, _env, global_forth_code, &global_forth_code_ipc, &recycle_obj, &skip_obj);
     status = analyse_forth(global_forth_code, begin, global_forth_code_ipc); 
-    if(status->em == DEBUG){
+    if (status->em == DEBUG) {
         return status;
     }
     else{
@@ -13029,12 +12575,12 @@ void* globaleval(void * _left, void ** _env){
     }
 }
 
-int calc_length(void * _left){
+int calc_length(void * _left) {
     type * left = (type*)_left;
     return left->obj_length;
 }
 
-void * check_fun_parameters(type *right, int now_num){
+void * check_fun_parameters(type *right, int now_num) {
     type * outcome = primitive_empty;
     int signx = 0;
 
@@ -13043,8 +12589,8 @@ void * check_fun_parameters(type *right, int now_num){
         if (!strcmp("", normal_fun[signx].name)) {
             break;
         }
-        if(normal_fun[signx].address == right->u_data.f_callback){
-            if(normal_fun[signx].parameters_num == 100 || now_num == normal_fun[signx].parameters_num){
+        if (normal_fun[signx].address == right->u_data.f_callback) {
+            if (normal_fun[signx].parameters_num == 100 || now_num == normal_fun[signx].parameters_num) {
                 return outcome;
             }
             else{
@@ -13062,8 +12608,7 @@ void * c_defun(void * name, void * arg, void * expr, void ** mem) {
     return name;
 }
 
-
-#define   analyse_procedure(name) {    present = c_cdr(left);     if (present->em == EMPTY) {          cross_sprintf(debug_inf, "%s FORMAT ERROR\r\n", name);         return new_debug(debug_inf, cross_strlen(debug_inf));     }      left = c_cadr(left);     if(left->em != VAR){          cross_sprintf(debug_inf, "%s should be VAR\r\n", name);         return new_debug(debug_inf, cross_strlen(debug_inf));     }      return primitive_empty;}
+#define   analyse_procedure(name) {    present = c_cdr(left);     if (present->em == EMPTY) {          cross_sprintf(debug_inf, "%s FORMAT ERROR\r\n", name);         return new_debug(debug_inf, cross_strlen(debug_inf));     }      left = c_cadr(left);     if (left->em != STORAGE) {          cross_sprintf(debug_inf, "%s should be storage\r\n", name);         return new_debug(debug_inf, cross_strlen(debug_inf));     }      return primitive_empty;}
 
 
 void * analyse_para(void * _left, void ** _env);
@@ -13078,22 +12623,21 @@ void * analyse(void * _left, void ** _env)
         (left->em == NOP)) {
         return primitive_empty;
     }
-    else if(left->em == VAR || left->em == STORAGE) {
+    else if (left->em == STORAGE) {
         return primitive_empty;
     }
     else if (left->em == UNLONG && left->u_data.un_long == NULLVALUE)
         return primitive_empty;
     else if (left->em == UNLONG)
         return primitive_empty;
-    if(left->em != LIST){
-        if(left->em == FUN){
-            modify_fun_content(left);
-            cross_sprintf(debug_inf, "s-express %s should be a list, but it's an original fun \r\n", left->u_data.s_var);
+    if (left->em != LIST) {
+        if (left->em == FUN) {
+            ruin(left);
+            cross_sprintf(debug_inf, "s-express %s should be a list, but it's an original fun \r\n", csp(left));
         }
-        else if(left->em == VAR){
-            cross_sprintf(debug_inf, "s-express %s  should be a list, but it's an VAR \r\n", left->u_data.s_var);
+        else if (left->em == STORAGE) {
+            cross_sprintf(debug_inf, "s-express %s  should be a list, but it's an STORAGE \r\n", csp(left));
         }
-        else{}
         return new_debug(debug_inf, cross_strlen(debug_inf));
     } 
     left_fprint(stderr, left);
@@ -13108,14 +12652,14 @@ void * analyse(void * _left, void ** _env)
         }
 
         present = c_cadr(left);
-        if ((present->em != LIST) && (present->em != VAR)) {
-            cross_strcpy(debug_inf, "FUNCALL fist value should be a VAR or statement \r\n");
+        if ((present->em != LIST) && (present->em != STORAGE)) {
+            cross_strcpy(debug_inf, "FUNCALL fist value should be a storage or statement \r\n");
             return new_debug(debug_inf, cross_strlen(debug_inf));
         }
 
         present = analyse(c_cadr(left), _env);
-        if(present->em == DEBUG) {
-            cross_sprintf(debug_inf, "FUNCALL\r\n%s", present->u_data.a_storage + sizeof(int));
+        if (present->em == DEBUG) {
+            cross_sprintf(debug_inf, "FUNCALL\r\n%s", csp(present));
             gc_atom(present);
             outcome = new_debug(debug_inf, cross_strlen(debug_inf));
         }
@@ -13124,28 +12668,6 @@ void * analyse(void * _left, void ** _env)
         }
         return outcome;
         break;
-    case SETQ:
-        left = c_cdr (left);
-        if (left->em == EMPTY) {
-            cross_strcpy(debug_inf, "SETQ shoule follows a statement\r\n");
-            return new_debug(debug_inf, cross_strlen(debug_inf));
-        }
-        present = c_car (left);
-        if(present->em != VAR){
-            cross_strcpy(debug_inf, "setq 1st should be VAR\r\n");
-            outcome = new_debug(debug_inf, cross_strlen(debug_inf));
-        } 
-        else{
-            present = c_cdr (left);
-            if(present->em != LIST){
-                cross_strcpy(debug_inf, "setq 2st should exist\r\n");
-                outcome = new_debug(debug_inf, cross_strlen(debug_inf));
-            }
-            else {
-                outcome = analyse(c_car(present), _env);
-            }
-        }
-        break;
     case DEFINE:
         present = c_cdr (left);
         if (present->em == EMPTY) {
@@ -13153,13 +12675,13 @@ void * analyse(void * _left, void ** _env)
             return new_debug(debug_inf, cross_strlen(debug_inf));
         }
         left = c_car (present );
-        if(left->em != VAR){
-            cross_strcpy(debug_inf, "define 1st should be VAR\r\n");
+        if (left->em != STORAGE) {
+            cross_strcpy(debug_inf, "define 1st should be storage\r\n");
             outcome = new_debug(debug_inf, cross_strlen(debug_inf));
         } 
         else{
             present = c_cdr (present);
-            if(present->em != LIST){
+            if (present->em != LIST) {
                 cross_strcpy(debug_inf, "define 2st should exist\r\n");
                 outcome = new_debug(debug_inf, cross_strlen(debug_inf));
             }
@@ -13185,7 +12707,7 @@ void * analyse(void * _left, void ** _env)
         }
         present = analyse(c_cadr(left), _env);
         if (present->em == DEBUG) {
-            cross_sprintf(debug_inf, "IF-CHOICE\r\n%s", present->u_data.a_storage + sizeof(int));
+            cross_sprintf(debug_inf, "IF-CHOICE\r\n%s", csp(present));
             gc_atom(present);
             return new_debug(debug_inf, cross_strlen(debug_inf));
         }
@@ -13200,15 +12722,15 @@ void * analyse(void * _left, void ** _env)
             return new_debug(debug_inf, cross_strlen(debug_inf));
         }
         present = analyse(c_car(present), _env);
-        if(present->em == DEBUG){
-            cross_sprintf(debug_inf, "IF-LAST\r\n%s", present->u_data.a_storage + sizeof(int));
+        if (present->em == DEBUG) {
+            cross_sprintf(debug_inf, "IF-LAST\r\n%s", csp(present));
             gc_atom(present);
             return new_debug(debug_inf, cross_strlen(debug_inf));
         }
 
         present = analyse(c_caddr(left), _env);
-        if(present->em == DEBUG){
-            cross_sprintf(debug_inf, "IF-FIRST\r\n%s", present->u_data.a_storage + sizeof(int));
+        if (present->em == DEBUG) {
+            cross_sprintf(debug_inf, "IF-FIRST\r\n%s", csp(present));
             gc_atom(present);
             return new_debug(debug_inf, cross_strlen(debug_inf));
         }
@@ -13221,13 +12743,13 @@ void * analyse(void * _left, void ** _env)
             return new_debug(debug_inf, cross_strlen(debug_inf));
         }
 
-        while ((( type * )c_cdr (left))->em != EMPTY){
+        while ((( type * )c_cdr(left))->em != EMPTY) {
             present = *_env;
             left_fprint(stderr, c_car(left));
             cross_fprintf(stderr, "\r\n");                
-            right = analyse(c_car(left) , (void**)&present);
-            if(right->em == DEBUG ){
-                cross_sprintf(debug_inf, "PROGN-MID\r\n%s", right->u_data.a_storage + sizeof(int));
+            right = analyse(c_car(left), (void**)&present);
+            if (right->em == DEBUG ) {
+                cross_sprintf(debug_inf, "PROGN-MID\r\n%s", csp(right));
                 gc_atom(right);
                 return new_debug(debug_inf, cross_strlen(debug_inf));
             }
@@ -13235,27 +12757,12 @@ void * analyse(void * _left, void ** _env)
         }
         left = c_car(left);
         present = analyse(left, _env);
-        if(present->em == DEBUG){
-            cross_sprintf(debug_inf, "PROGN-LAST\r\n%s", present->u_data.a_storage + sizeof(int));
+        if (present->em == DEBUG) {
+            cross_sprintf(debug_inf, "PROGN-LAST\r\n%s", csp(present));
             gc_atom(present);
             return new_debug(debug_inf, cross_strlen(debug_inf));
         }
         return primitive_empty;
-        break;
-    case EJECT:
-        analyse_procedure("EJECT");
-        break;
-    case WHOLE:
-        analyse_procedure("WHOLE");
-        break;
-    case EXCHANGE:
-        analyse_procedure("EXCHANGE");
-        break;
-    case COMBI:
-        analyse_procedure("COMBI");
-        break;
-    case TOP:
-        analyse_procedure("TOP");
         break;
     case JOIN:
         present = c_cdr(left);
@@ -13265,23 +12772,8 @@ void * analyse(void * _left, void ** _env)
         }
 
         present = c_cadr(left);
-        if(present->em != VAR) {
-            cross_strcpy(debug_inf, "join should be VAR\r\n");
-            return new_debug(debug_inf, cross_strlen(debug_inf));
-        } 
-        right = c_caddr(left);
-        return analyse(right, _env);
-        break;
-    case PRESS:
-        present = c_cdr(left);
-        if (present->em == EMPTY) {
-            cross_strcpy(debug_inf, "PRESS shoule follows a statement\r\n");
-            return new_debug(debug_inf, cross_strlen(debug_inf));
-        }
-
-        present = c_cadr(left);
-        if(present->em != VAR){
-            cross_strcpy(debug_inf, "press should be VAR\r\n");
+        if (present->em != STORAGE) {
+            cross_strcpy(debug_inf, "join should be storage\r\n");
             return new_debug(debug_inf, cross_strlen(debug_inf));
         } 
         right = c_caddr(left);
@@ -13289,19 +12781,19 @@ void * analyse(void * _left, void ** _env)
         break;
     case FUN:
         present = c_cdr(left);
-        if(present->em == EMPTY){
+        if (present->em == EMPTY) {
             present = check_fun_parameters(head, 0);
         }
         else{
             present = check_fun_parameters(head, present->obj_length);
         }
 
-        if(present != NULL) {
+        if (present != NULL) {
             return analyse_para(c_cdr(left), _env);
         }
         else{
-            modify_fun_content(head);
-            cross_sprintf(debug_inf, "%s original fun should have the same parameter num\r\n", head->u_data.s_var);
+            ruin(head);
+            cross_sprintf(debug_inf, "%s original fun should have the same parameter num\r\n", csp(head));
             return new_debug(debug_inf, cross_strlen(debug_inf));
         }
         break;
@@ -13348,8 +12840,8 @@ void * analyse(void * _left, void ** _env)
             return new_debug(debug_inf, cross_strlen(debug_inf));
         }
         head = c_car(present);
-        if (head->em != VAR) {
-            cross_strcpy(debug_inf, "DEFUN/DEFMACRO shoule follows VAR as function name, maybe original fun\r\n");
+        if (head->em != STORAGE) {
+            cross_strcpy(debug_inf, "DEFUN/DEFMACRO shoule follows storage as function name, maybe original fun\r\n");
             return new_debug(debug_inf, cross_strlen(debug_inf));
         }
 
@@ -13373,14 +12865,16 @@ void * analyse(void * _left, void ** _env)
 
         mid_x = analyse_para(c_cddr(present), _env);
         if (mid_x != NULL) {
-            assign((char *) (head->u_data.s_var), c_cdr(present), c_cddr(present), &global_defun);
+            assign(csp(head),
+                   css(head),
+                   c_cdr(present), c_cddr(present), &global_defun);
         }
         return mid_x;
         break;
-    case VAR:
+    case STORAGE:
         if ((c_find_defun_arg(head, (void ** )&presentarg) && presentarg)) {
             if (calc_length(presentarg) != calc_length(c_cdr(left))) {
-                cross_sprintf(debug_inf, "%s user fun should have the same parameter num\r\n", head->u_data.s_var);
+                cross_sprintf(debug_inf, "%s user fun should have the same parameter num\r\n", csp(head));
                 return new_debug(debug_inf, cross_strlen(debug_inf));
             }
             else {
@@ -13388,7 +12882,7 @@ void * analyse(void * _left, void ** _env)
             }
         }
         else{
-            color_fprintf(stderr, COLOR_GREEN, "%s should be a function name, maybe error, leave for link detect \r\n", head->u_data.s_var);
+            color_fprintf(stderr, COLOR_GREEN, "%s should be a function name, maybe error, leave for link detect \r\n", csp(head));
             fflush(stderr);            
             return primitive_empty;
         }
@@ -13454,20 +12948,20 @@ void * original_pcreate(void * _left) {
     priority = worker->u_data.un_long;
 
     worker = c_cadr(_left);
-    if (worker->em != VAR) {
-        cross_snprintf(debug_inf, 256, "2st should be VAR as function name\r\n");
+    if (worker->em != STORAGE) {
+        cross_snprintf(debug_inf, 256, "2st should be storage as function name\r\n");
         return new_debug(debug_inf, strlen(debug_inf));
     }
     else {
-        code_result = lookup((char *)this,
+        code_result = lookup((char *)this, cross_strlen(this),
                              global_code);
         if (code_result._env) {
             forth_code = (void**)code_result.u_data._expr;
         }
 
-        stream_result = lookup((char *)this,
+        stream_result = lookup((char *)this, cross_strlen(this),
                                global_stream);
-        if (stream_result._env){
+        if (stream_result._env) {
             forth_code_ipc = (long)stream_result._env;
         }
 
@@ -13475,7 +12969,7 @@ void * original_pcreate(void * _left) {
         if (forth_find != 0) {
             para = forth_code[forth_find + 1];
             outcome = c_cddr(_left);
-            if(calc_length(para) != calc_length(outcome)) {
+            if (calc_length(para) != calc_length(outcome)) {
                 cross_snprintf(debug_inf, 256, "para key and value --> the same\r\n");
                 return new_debug(debug_inf, strlen(debug_inf));
             }
@@ -13485,7 +12979,7 @@ void * original_pcreate(void * _left) {
             /*need not c_normal_copy outcome, think why*/            
             c_bindvars(para, outcome, _env);
             outcome = random_name();
-            prepare_dispatch(outcome->u_data.s_var,
+            prepare_dispatch(csp(outcome),
                              _env, forth_code, 
                              forth_find + 2, forth_code_ipc, 2,
                              pcreate_closure, c_list(_env, c_normal_copy(_left), 0), priority);
@@ -13506,12 +13000,12 @@ void * original_pjoin(void * _left) {
     type * left = c_car(_left);
     char debug_inf[256] = "\0";
 
-    if (left->em != VAR) {
-        cross_snprintf(debug_inf, 256, "1st should be VAR\r\n");
+    if (left->em != STORAGE) {
+        cross_snprintf(debug_inf, 256, "1st should be storage\r\n");
         return new_debug(debug_inf, strlen(debug_inf));
     }
 
-    return dispatch_core(left->u_data.s_var);
+    return dispatch_core(csp(left));
 }
 
 /*(fake thread system end)*/
@@ -13562,8 +13056,8 @@ void * analyse_para(void * _left, void ** _env) {
     }
     else {
         present = analyse(c_car(left), (void **)&env);
-        if(present->em == DEBUG) {
-            cross_sprintf(debug_inf, "analyse_para:\r\n%s", present->u_data.a_storage + sizeof(int));
+        if (present->em == DEBUG) {
+            cross_sprintf(debug_inf, "analyse_para:\r\n%s", csp(present));
             gc_atom(present);
             return new_debug(debug_inf, cross_strlen(debug_inf));
         }
@@ -13572,7 +13066,7 @@ void * analyse_para(void * _left, void ** _env) {
 }
 
 static int number; /*  if NUMBER: numerical value  */
-static signed char arabic[ARABIC];
+static signed char arabic[1024];
 static char alpha_ex[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz_!.:LC@#=&?*$/<{}";
 
 int isalpha_ex(char test) {
@@ -13605,7 +13099,7 @@ char * scan(char * buf, enum tokens* localtoken)
         while (isalpha_ex(*bp & 0xff))
             arabic[sign++] = *bp++;
 
-        if (sign >= ARABIC) {
+        if (sign >= 1024) {
             color_fprintf(stderr, COLOR_RED, "factor %s string too long\r\n", arabic);
             fflush(stderr);
             exit(-1);
@@ -13627,7 +13121,6 @@ void * fun_type(void * name) {
         gc(outcome);
         return NULL;
     }
-    /*  cross_strcpy(outcome->u_data.s_var, name);  //if  add would be a proce,see type defination */
     return outcome;
 }
 
@@ -13656,7 +13149,6 @@ static void * factor(char **_now) {
     enum tokens token;
     char * file_token = NULL;
     char * response = NULL;
-    char * responsex = NULL;
     size_t storage_size = 0;
     int pattern = 1;
 
@@ -13713,13 +13205,13 @@ static void * factor(char **_now) {
             if (!ele_left) {
                 return c_cons(primitive_empty, primitive_empty);
             }
-            else if(ele_left->em == DEBUG) return ele_left;
-            else if(ele_left->em == VAR && !strcmp(ele_left->u_data.s_var, "comment")){
+            else if (ele_left->em == DEBUG) return ele_left;
+            else if (ele_left->em == STORAGE && !strcmp(csp(ele_left), "comment")) {
                 gc(ele_left);
                 while (1) {
                     ele_right = factor(_now);
                     if (!ele_right) break;
-                    if(ele_right->em == DEBUG) {
+                    if (ele_right->em == DEBUG) {
                         return ele_right;
                     }
                     left_fprint(stderr, ele_right);
@@ -13727,16 +13219,16 @@ static void * factor(char **_now) {
                 }
                 return factor(_now);
             }
-            else if(ele_left->em == VAR && !strcmp(ele_left->u_data.s_var, "storage")){
+            else if (ele_left->em == QUOTE) {
                 while (isspace(**_now & 0xff))
                     *_now += 1; 
                 pattern = 1;
                 file_token = *_now; 
-                while(1){
-                    if(*file_token == '(') {pattern++;} 
-                    else if(*file_token == ')') {pattern--;} 
+                while (1) {
+                    if (*file_token == '(') {pattern++;} 
+                    else if (*file_token == ')') {pattern--;} 
                     else{}
-                    if(0 == pattern)break;
+                    if (0 == pattern)break;
                     file_token += 1; 
                 }
                 if (file_token == *_now) {
@@ -13744,20 +13236,14 @@ static void * factor(char **_now) {
                     cross_strcpy(debug_inf, "storage material is empty\r\n");
                     return new_debug(debug_inf, cross_strlen(debug_inf));
                 }
-                response = (char*) cross_calloc(BUF_SIZE, sizeof(char));
+                
+                response = (char*) cross_calloc(1024, sizeof(char));
                 cross_memcpy(response, *_now, file_token - *_now);
-                ele_left->em = STORAGE;
-
-                storage_size = cross_strlen(response) + 1 + sizeof(int);
-                responsex = (char*)cross_calloc(storage_size, sizeof(char));
-                cross_memcpy((responsex + sizeof(int)), response, storage_size - sizeof(int) - 1);
-                *(int*)responsex = storage_size - sizeof(int);
-                ele_left->u_data.a_storage = responsex;
-                cross_fprintf(stderr, "storage is  %s  \r\n", responsex + sizeof(int));
+                ele_right = new_storage(response, cross_strlen(response));
+                cross_fprintf(stderr, "quote is  %s  \r\n", response + sizeof(int));
                 cross_free(response);
-
-                *_now = file_token + 1; 
-                return ele_left;
+                *_now = file_token + 1;
+                return c_list(ele_left, ele_right, 0);
             }
             else{
                 ele_left = c_cons(ele_left, primitive_empty);
@@ -13765,7 +13251,7 @@ static void * factor(char **_now) {
                 while (1) {
                     ele_right = factor(_now);
                     if (ele_right) {
-                        if(ele_right->em == DEBUG) {
+                        if (ele_right->em == DEBUG) {
                             gc(ele_left);
                             return ele_right;
                         }
@@ -13786,12 +13272,12 @@ static void * factor(char **_now) {
             if ( is_quote != 0) {
                 is_quote++;
                 ele_right = factor(_now);
-                if( ele_right == NULL) {
+                if ( ele_right == NULL) {
                     is_quote--;
                     cross_strcpy(debug_inf, "' shoule follow with arabic\r\n");
                     return new_debug(debug_inf, cross_strlen(debug_inf));
                 }
-                if(ele_right->em == DEBUG) {
+                if (ele_right->em == DEBUG) {
                     is_quote--;
                     return ele_right;
                 }
@@ -13800,12 +13286,12 @@ static void * factor(char **_now) {
             else {
                 is_quote++;
                 ele_right = factor(_now);
-                if( ele_right == NULL) {
+                if ( ele_right == NULL) {
                     is_quote--;
                     cross_strcpy(debug_inf, "' shoule follow with arabic\r\n");
                     return new_debug(debug_inf, cross_strlen(debug_inf));
                 }
-                if(ele_right->em == DEBUG) {
+                if (ele_right->em == DEBUG) {
                     is_quote--;
                     return ele_right;
                 }
@@ -13815,19 +13301,19 @@ static void * factor(char **_now) {
             return outcome;
         case '`':
             ele_right = factor(_now);
-            if( ele_right == NULL) {
+            if ( ele_right == NULL) {
                 cross_strcpy(debug_inf, "` shoule follow with arabic\r\n");
                 return new_debug(debug_inf, cross_strlen(debug_inf));
             }
-            if(ele_right->em == DEBUG) return ele_right;
+            if (ele_right->em == DEBUG) return ele_right;
             return c_list(operate_type(QUOTEX), ele_right, 0);
         case ',':
             ele_right = factor(_now);
-            if( ele_right == NULL) {
+            if ( ele_right == NULL) {
                 cross_strcpy(debug_inf, ", shoule follow with arabic\r\n");
                 return new_debug(debug_inf, cross_strlen(debug_inf));
             }
-            if(ele_right->em == DEBUG) return ele_right;
+            if (ele_right->em == DEBUG) return ele_right;
             return c_list(operate_type(EVAL), ele_right, 0);  /*modify 2014.6.30, for macro forth */
         default:
             if (arabic[0] == 0) {
@@ -13838,7 +13324,7 @@ static void * factor(char **_now) {
                 /*maybe some unexpected error*/
                 return NULL;
             }
-            cross_sprintf(debug_inf, "%s %c %u error fun arabic\r\n", arabic, arabic[0], arabic[0]);
+            cross_sprintf(debug_inf, "%s %c %u error fun \r\n", arabic, arabic[0], arabic[0]);
             return new_debug(debug_inf, cross_strlen(debug_inf));
             break;
         }
@@ -13849,33 +13335,118 @@ static void * factor(char **_now) {
     return NULL;
 }
 
-void init_raw_var(void) {
-    void * raw = NULL;
-    raw_type *raw_left;
-
-    raw = raw_new_object();
-    raw_left = (raw_type*) (*(long*)( (char *)raw - sizeof(long)) );
-    raw_mem_manager_reserved = raw_primitive_reserved = raw_left->mother;
-
-    raw = raw_new_object();
-    raw_left = (raw_type*) (*(long*)( (char *)raw - sizeof(long)) );
-    raw_mem_manager_used = raw_primitive_used = raw_left->mother;
-}
-
-
 void init_object(void) {
     int i = 0;
-    time_t now;  
-    int unixtime;
-
     /*follow code is special too. use calloc instead of cross_calloc*/
-    mem_manager_unused = (wraptype *) cross_calloc(sizeof(wraptype), global_count);
-
+    mem_manager_unused = (wraptype *)calloc(sizeof(wraptype), global_count);
     for (i = 0; i < global_count - 1; i++) {
         mem_manager_unused[i].mem_next = &mem_manager_unused[i + 1];
     }
     mem_manager_unused[global_count - 1].mem_next = NULL;
+}
 
+int raw_global_count = 2;
+typedef struct raw_type {
+    void * content;
+    void * mother;
+} raw_type;
+
+typedef struct {
+    void * mem_next;
+    raw_type value;
+} raw_wraptype;
+
+raw_wraptype * raw_manager_unused = NULL;
+raw_wraptype * raw_manager_used = NULL;
+raw_wraptype * raw_primitive_used = NULL;
+
+raw_wraptype * raw_manager_reserved = NULL;
+raw_wraptype * raw_primitive_reserved = NULL;
+
+void init_raw_var(void) {
+    void * raw = NULL;
+    raw_type *raw_left;
+
+    raw = spawn_raw_object();
+    raw_left = (raw_type*)(*(long*)((char *)raw - sizeof(long)));
+    raw_manager_reserved = raw_primitive_reserved = raw_left->mother;
+
+    raw = spawn_raw_object();
+    raw_left = (raw_type*)(*(long*)((char *)raw - sizeof(long)));
+    raw_manager_used = raw_primitive_used = raw_left->mother;
+}
+
+void * withdraw_raw_object(void) {
+    raw_wraptype * handle = NULL;
+    raw_manager_reserved = raw_primitive_reserved->mem_next;
+
+    while (raw_manager_reserved) {
+        handle = raw_manager_reserved->mem_next;
+        raw_manager_used->mem_next = raw_manager_reserved;
+        raw_manager_used = raw_manager_reserved;
+        raw_manager_reserved = handle;
+    }
+
+    raw_manager_reserved = raw_primitive_reserved;
+    raw_primitive_reserved->mem_next = NULL;
+    return NULL;
+}
+
+void alloc_raw_object(void) {
+    int i = 0;
+    raw_type* current = NULL;
+
+    /*last one didn't used*/
+    raw_manager_unused = (raw_wraptype *)cross_calloc(sizeof(raw_wraptype), raw_global_count + 1);
+    for (i = 0; i < raw_global_count; i++) {
+        current = &raw_manager_unused[i].value;
+        current->content = (void*)calloc(ARABIC + sizeof(long) + sizeof(int) + sizeof(char), sizeof(char));
+        raw_manager_unused[i].mem_next = &raw_manager_unused[i + 1];
+    }
+    raw_manager_unused[raw_global_count - 1].mem_next = NULL;
+}
+
+void* spawn_raw_object(void) {
+    raw_type * outcome;
+    void * content = NULL;
+
+    if (NULL == raw_manager_unused) {
+        if (raw_primitive_used->mem_next == NULL) {
+            withdraw_raw_object();
+        }
+        raw_manager_unused = raw_primitive_used->mem_next;
+        raw_primitive_used->mem_next = NULL;
+        raw_manager_used = raw_primitive_used;
+    }
+    if (NULL == raw_manager_unused) {
+        cross_fprintf(stderr, "realloc more raw memory\r\n");
+        alloc_raw_object();
+    }
+
+    outcome = &(raw_manager_unused->value);
+    outcome->mother = raw_manager_unused;
+    raw_manager_unused = raw_manager_unused->mem_next;
+    ((raw_wraptype *) outcome->mother)->mem_next = NULL;
+
+    content = outcome->content;
+    *(long *)content = (long)outcome;
+    return content + sizeof(long);
+}
+
+void   recycle_raw_object(void * left) {
+    ((raw_wraptype*)(((raw_type*)(left))->mother))->mem_next = NULL;
+    raw_manager_used->mem_next = ((raw_wraptype*)(((raw_type*)(left))->mother));
+    raw_manager_used = ((raw_wraptype*)(((raw_type*)(left))->mother));
+}
+
+#define   PRIMITIVE_PREFIX(PTR)    primitive_##PTR
+#define   PRIMITIVE_INIT(PTR, TYPE)    PRIMITIVE_PREFIX(PTR) = new_object(); PRIMITIVE_PREFIX(PTR)->em = TYPE;
+void init_var(void) {
+    type *left;
+    int i = 0;
+
+    time_t now;  
+    int unixtime;    
     unixtime = time(&now);  
     cross_fprintf(stderr, "initrand unixtime is %d\r\n", unixtime);
     srand(unixtime);
@@ -13900,51 +13471,28 @@ void init_object(void) {
     local_forth_code = (void**)cross_calloc(sizeof(void*), FORTH_WORD);
 
     forth_code_unfix = (void**)cross_calloc(sizeof(void*), FORTH_WORD);
-    forth_macro_skip = (void**)cross_calloc(sizeof(void*), FORTH_WORD);
-}
-
-
-void init_raw_object(void) {
-    int i = 0;
-    raw_type * current = NULL;
-
-    /*last one didn't used*/
-    raw_mem_manager_unused = (raw_wraptype *) cross_calloc(sizeof(raw_wraptype), raw_global_count + 1);
-
-    for (i = 0; i < raw_global_count; i++) {
-        current =  &raw_mem_manager_unused[i].value;
-        current->content = (void*)calloc(BUF_SIZE, sizeof(char));
-        raw_mem_manager_unused[i].mem_next = &raw_mem_manager_unused[i + 1];
-    }
-
-    raw_mem_manager_unused[raw_global_count - 1].mem_next = NULL;
-}
-
-#define   PRIMITIVE_PREFIX(PTR)    primitive_##PTR
-#define   PRIMITIVE_INIT(PTR, TYPE)    PRIMITIVE_PREFIX(PTR) = new_object(); PRIMITIVE_PREFIX(PTR)->em = TYPE;
-void init_primitive_var(void) {
-    type *left;
-    int i = 0;
-
-    for(i = 0; i <= AMOUNT; i++){
-        primitive_small[i] = new_object();
-        primitive_small[i]->em = UNLONG;
-        primitive_small[i]->u_data.un_long = 0 - (AMOUNT - i);
-        primitive_small[i]->ref_count = 1000;
-    }
-
-    for(i = AMOUNT + 1; i < 2 * AMOUNT + 1 + 1; i++){
-        primitive_small[i] = new_object();
-        primitive_small[i]->em = UNLONG;
-        primitive_small[i]->u_data.un_long = i - AMOUNT;
-        primitive_small[i]->ref_count = 1000;
-    }
+    forth_macro_skip = (void**)cross_calloc(sizeof(void*), FORTH_WORD);    
 
     left = new_object();
     mem_manager_reserved = primitive_reserved = left->mother;
 
     left = new_object();
     mem_manager_used = primitive_used = left->mother;
+
+
+    for (i = 0; i <= AMOUNT; i++) {
+        primitive_small[i] = new_object();
+        primitive_small[i]->em = UNLONG;
+        primitive_small[i]->u_data.un_long = 0 - (AMOUNT - i);
+        primitive_small[i]->ref_count = 1000;
+    }
+
+    for (i = AMOUNT + 1; i < 2 * AMOUNT + 1 + 1; i++) {
+        primitive_small[i] = new_object();
+        primitive_small[i]->em = UNLONG;
+        primitive_small[i]->u_data.un_long = i - AMOUNT;
+        primitive_small[i]->ref_count = 1000;
+    }
 
     PRIMITIVE_INIT(empty, EMPTY)
         primitive_empty->u_data.un_long = NULLVALUE;
@@ -13960,7 +13508,6 @@ void init_primitive_var(void) {
         PRIMITIVE_INIT(evfuncallmid, EVFUNCALLMID)
         PRIMITIVE_INIT(evfuncallend, EVFUNCALLEND)
         PRIMITIVE_INIT(evmacro, EVMACRO)
-        PRIMITIVE_INIT(evsetq, EVSETQ)
         PRIMITIVE_INIT(evdefine, EVDEFINE)
         PRIMITIVE_INIT(evargscombi, EVARGSCOMBI)
         PRIMITIVE_INIT(evargs, EVARGS)
@@ -13968,7 +13515,6 @@ void init_primitive_var(void) {
         PRIMITIVE_INIT(evprogn, EVPROGN)
         PRIMITIVE_INIT(evprognmid, EVPROGNMID)
         PRIMITIVE_INIT(evprognend, EVPROGNEND)
-        PRIMITIVE_INIT(evpress, EVPRESS)
         PRIMITIVE_INIT(evjoin, EVJOIN)
         PRIMITIVE_INIT(effun, EFFUN)
         PRIMITIVE_INIT(efyield, EFYIELD)
@@ -13992,7 +13538,6 @@ void init_primitive_var(void) {
         PRIMITIVE_INIT(efquote, EFQUOTE)
         PRIMITIVE_INIT(efquotex, EFQUOTEX)
         PRIMITIVE_INIT(efquotexend, EFQUOTEXEND)
-        PRIMITIVE_INIT(efsetq, EFSETQ)
         PRIMITIVE_INIT(efdefine, EFDEFINE)
         PRIMITIVE_INIT(eflambda, EFLAMBDA)
         PRIMITIVE_INIT(efiter, EFITER)
@@ -14003,13 +13548,7 @@ void init_primitive_var(void) {
         PRIMITIVE_INIT(eflambdaend, EFLAMBDAEND)
         PRIMITIVE_INIT(efiterend, EFITEREND)
         PRIMITIVE_INIT(effuncallend, EFFUNCALLEND)
-        PRIMITIVE_INIT(efeject, EFEJECT)
-        PRIMITIVE_INIT(eftop, EFTOP)
-        PRIMITIVE_INIT(efcombi, EFCOMBI)
-        PRIMITIVE_INIT(efexchange, EFEXCHANGE)
-        PRIMITIVE_INIT(efwhole, EFWHOLE)
         PRIMITIVE_INIT(efjoin, EFJOIN)
-        PRIMITIVE_INIT(efpress, EFPRESS)
         PRIMITIVE_INIT(eflistbegin, EFLISTBEGIN)
         PRIMITIVE_INIT(eflistend, EFLISTEND)
 
@@ -14021,6 +13560,20 @@ void init_primitive_var(void) {
         PRIMITIVE_INIT(zfelseif, ZFELSEIF)
         PRIMITIVE_INIT(zfthen, ZFTHEN)
 #endif
+
+    int sign = 0;
+    while (1) {
+        if (!strcmp("", normal_fun[sign].name)) {
+            break;
+        }
+        if (lookup_primitive(normal_fun[sign].name, global_primitive) != NULL) {
+            color_fprintf(stderr, COLOR_GREEN, "%s alread\r\n", normal_fun[sign].name);
+        }
+
+        assign_primitive(normal_fun[sign].name, normal_fun[sign].address,
+                         &global_primitive);
+        sign++;
+    }        
 }
 
 void * eval(void** _env, char *buf) {
@@ -14046,7 +13599,7 @@ void * eval(void** _env, char *buf) {
     }
 
     present = analyse(ele_left, (void **)&m_env);
-    if(present->em != DEBUG) {
+    if (present->em != DEBUG) {
         outcome = left_fprint(stderr, globaleval(ele_left, (void **)_env));
     }
     else{
@@ -14135,9 +13688,9 @@ void * evaljit(char *buf, int socket) {
         dis_forth_code = (void**)cross_calloc(sizeof(void*), FORTH_WORD);
         eval_impl(ele_left, _env, dis_forth_code, &end, recycle_obj, skip_obj);
         outcome = analyse_forth(dis_forth_code, begin, end);
-        if(outcome->em != DEBUG) {
+        if (outcome->em != DEBUG) {
             outcome = random_name();
-            prepare_dispatch(outcome->u_data.s_var, _env, 
+            prepare_dispatch(csp(outcome), _env, 
                              dis_forth_code, begin, end, socket, evaljit_closure, 
                              c_list(dis_forth_code, _env, recycle_obj, skip_obj, ele_right, symbol, value, 0), 0);    
         }
@@ -14154,12 +13707,11 @@ void * evaljit(char *buf, int socket) {
 }
 
 void init_meta() {
-    init_raw_object();
+    alloc_raw_object();
     init_raw_var();
 
     init_object();
-    init_primitive_var();
-    init_primitive();
+    init_var();
 }
 
 void high_tech(void** _env) {
@@ -14204,7 +13756,7 @@ int main(int argc, char ** argv) {
 #if defined(_WIN32) && defined(MYSELECT)
     init_socket();
 #endif
-
+    
     dispatch_init();
     init_meta();
 
@@ -14241,10 +13793,10 @@ int main(int argc, char ** argv) {
         else{
             cross_read(argv[1], &sign, buf + strlen(buf));
             strcat(buf, " )");
-            if(cross_strstr(argv[1], ".elc")) {
+            if (cross_strstr(argv[1], ".elc")) {
 #if defined(HUFFMAN)
                 cross_strcpy(global_filename, argv[1]);
-                global_filename[ cross_strlen(global_filename) - 1] = '\0'; 
+                global_filename[cross_strlen(global_filename) - 1] = '\0'; 
                 init_indicator();
                 huffman_decryption((unsigned char  *)buf, sign);
                 release_indicator();

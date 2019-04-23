@@ -12,7 +12,7 @@
     (sleep 1)
     (dispatch  socket)))
 
-(pjoin (pcreate 1 'dispatch  (bind  8528 (storage 0.0.0.0))))
+(pjoin (pcreate 1 'dispatch  (bind  8528 (quote 0.0.0.0))))
 
 
 

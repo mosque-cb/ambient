@@ -1,4 +1,4 @@
-(setq maclisper (dcreate))
+(seq maclisper (dcreate))
 
 (defun caar (lst)
   (car (car lst)))
@@ -103,5 +103,5 @@
 
 (dispatch 
  (init  (aecreate 'select)   
-        (bind  8778  (storage 0.0.0.0)))
+        (bind  8778  (quote 0.0.0.0)))
  0)

@@ -1,6 +1,6 @@
-(setq  map_schema  (list 'id 'url 'count))
-(setq  reduce_schema  (list 'id 'wholecount 'urlcount))
-(setq  init 
+(seq  map_schema  (list 'id 'url 'count))
+(seq  reduce_schema  (list 'id 'geqcount 'urlcount))
+(seq  init 
        (format map_schema 
                (tabsplit (tabconcat (list 'idx 'urlx 'countx)))
                (jcreate)))
@@ -28,8 +28,8 @@
 
 (defun countotherurl (first now)
   (progn
-    (jaddobject  now  'wholecount	   (jcreatestring
-                                        (itoa (add  (atoi (jgetstring (jgetobject first 'wholecount )))
+    (jaddobject  now  'geqcount	   (jcreatestring
+                                        (itoa (add  (atoi (jgetstring (jgetobject first 'geqcount )))
                                                     (atoi (jgetstring (jgetobject first 'count )))))))
     (jaddobject  now  'counturl	   (jcreatestring
                                     (concat (itoa  (atoi (jgetstring (jgetobject first 'count ))))
@@ -48,8 +48,8 @@
 
 (defun countotherid (first now cont)
   (progn
-    (jupdateobject  first  'wholecount	   (jcreatestring
-                                            (itoa (add (atoi (jgetstring (jgetobject first 'wholecount )))
+    (jupdateobject  first  'geqcount	   (jcreatestring
+                                            (itoa (add (atoi (jgetstring (jgetobject first 'geqcount )))
                                                        (atoi (jgetstring (jgetobject first 'count )))))))
     (jupdateobject  first  'counturl	   (jcreatestring
                                             (concat (itoa (atoi (jgetstring (jgetobject first 'count ))))  
@@ -127,7 +127,7 @@
 
 (reactor (funcall (lambda (cont )
                     (lambda (first)
-                      (setq init  
+                      (seq init  
                             (count init
                                    (format  map_schema  (wrapsplit (tabsplit  (strip first))) (jcreate))
                                    cont))))
@@ -142,7 +142,7 @@
                                                 (lambda (first)
                                                   (wrapprint first cont)))
                                               (lambda (x) (print x)))
-                                     (lambda  (record) (if  (big (atoi (jgetstring (jgetobject record 'wholecount))) 200) 1  0)))
+                                     (lambda  (record) (if  (big (atoi (jgetstring (jgetobject record 'geqcount))) 200) 1  0)))
                            (lambda (record) (jaddobject record
                                                         'urlcount
                                                         (jcreatestring  (tabconcat (varsort (split  (jgetstring (jgetobject record 'counturl)) '!!!)))))))))

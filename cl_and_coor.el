@@ -13,7 +13,7 @@
              (add (strlen begin) 
                   (find material begin))
              (strlen material))
-     (storage &))))
+     (quote &))))
 
 (defun wrapconcat(a b c)
   (if (or (eq a nil)
@@ -24,9 +24,9 @@
 
 (defun process(material)
   (wrapconcat
-   (decision material (storage &cl=))
-   (decision material (storage &cellx=))
-   (decision material (storage &celly=))))
+   (decision material (quote &cl=))
+   (decision material (quote &cellx=))
+   (decision material (quote &celly=))))
 
 (defun  reactor()
   (if (eofstdin)

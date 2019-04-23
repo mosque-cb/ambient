@@ -17,7 +17,7 @@
 (defun network(socket)
   (progn
     (print 'network)
-    (send  socket (concat (storage s_bhc)
+    (send  socket (concat (quote s_bhc)
                           (timetostring (unixtime))))
     (handledata socket 0)
     (close socket)
@@ -73,7 +73,7 @@
                          socket)))
 
 (defun  proxy()
-  (connect (storage localhost:8565)))
+  (connect (quote localhost:8565)))
 
 (defun dispatch(time)
   (progn

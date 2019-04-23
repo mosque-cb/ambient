@@ -1,15 +1,15 @@
 (defun  get (socket)
-  (send socket (concat (lineconcat (list (storage GET /cmdCmdcmd=ps+aux+%7c+grep+as HTTP/1.0) 
-                                         (storage Host: 127.0.0.1) 
-                                         (storage U-ApiKey:8b6c51b8a18ccbdae3c7ac74169ec3da) 
-                                         (storage Content-Length: 0)
-                                         (storage User-Agent: http_get) 
-                                         (storage Content-Type: application/json) 
-                                         (storage Accept: */*) 
-                                         (storage Accept-Language: utf8) 
-                                         (storage Accept-Charset: iso-8859-1,*,utf-8) 
-                                         (storage Authorization: Basic YWRtaW46YWRtaW4=) 
-                                         (storage Connection: Keep-Alive)))
+  (send socket (concat (lineconcat (list (quote GET /cmdCmdcmd=ps+aux+%7c+grep+as HTTP/1.0) 
+                                         (quote Host: 127.0.0.1) 
+                                         (quote U-ApiKey:8b6c51b8a18ccbdae3c7ac74169ec3da) 
+                                         (quote Content-Length: 0)
+                                         (quote User-Agent: http_get) 
+                                         (quote Content-Type: application/json) 
+                                         (quote Accept: */*) 
+                                         (quote Accept-Language: utf8) 
+                                         (quote Accept-Charset: iso-8859-1,*,utf-8) 
+                                         (quote Authorization: Basic YWRtaW46YWRtaW4=) 
+                                         (quote Connection: Keep-Alive)))
                        'LINE
                        'LINE)))
 
@@ -32,7 +32,7 @@
    (connect
     (concat 
      ip 
-     (storage :) 
+     (quote :) 
      3001))))
 
 (defun  reactor()

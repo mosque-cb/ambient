@@ -9,10 +9,10 @@
               (jgetobject             
                (jgetobject             
                 (jgetobject json 'as)
-                (storage as_response))
-               (storage as_result))
-              (storage results))
-             (storage num_found))))
+                (quote as_response))
+               (quote as_result))
+              (quote results))
+             (quote num_found))))
     json))
 
 (defun handlematerial(material)
@@ -24,19 +24,19 @@
   (if (eq socket nil)
       nil
     (progn    
-      (send socket (concat (lineconcat (list (storage GET /?debug_info=as&debug_id=123456&wwsy=yes&rows=60&start=0&wt=json&)
+      (send socket (concat (lineconcat (list (quote GET /?debug_info=as&debug_id=123456&wwsy=yes&rows=60&start=0&wt=json&)
                                              key
-                                             (storage &fl=vendor_Name,partnumber,brand_Name,auxdescription,three_groupName,three_groupExtName,author,isbn,unit_searchable_attr,title,two_groupName,threeGroupIds,short_brand_Id HTTP/1.0) 
-                                             (storage Host: 127.0.0.1) 
-                                             (storage U-ApiKey:8b6c51b8a18ccbdae3c7ac74169ec3da) 
-                                             (storage Content-Length: 0)
-                                             (storage User-Agent: http_get) 
-                                             (storage Content-Type: application/json) 
-                                             (storage Accept: */*) 
-                                             (storage Accept-Language: utf8) 
-                                             (storage Accept-Charset: iso-8859-1,*,utf-8) 
-                                             (storage Authorization: Basic YWRtaW46YWRtaW4=) 
-                                             (storage Connection: Keep-Alive)))
+                                             (quote &fl=vendor_Name,partnumber,brand_Name,auxdescription,three_groupName,three_groupExtName,author,isbn,unit_searchable_attr,title,two_groupName,threeGroupIds,short_brand_Id HTTP/1.0) 
+                                             (quote Host: 127.0.0.1) 
+                                             (quote U-ApiKey:8b6c51b8a18ccbdae3c7ac74169ec3da) 
+                                             (quote Content-Length: 0)
+                                             (quote User-Agent: http_get) 
+                                             (quote Content-Type: application/json) 
+                                             (quote Accept: */*) 
+                                             (quote Accept-Language: utf8) 
+                                             (quote Accept-Charset: iso-8859-1,*,utf-8) 
+                                             (quote Authorization: Basic YWRtaW46YWRtaW4=) 
+                                             (quote Connection: Keep-Alive)))
                            'LINE
                            'LINE)))))
 
@@ -47,11 +47,11 @@
     nop))
 
 (defun ddd(material)
-  (if (eq (find material (storage seqid=)) nil)
-      (concat (storage q=iphone))
+  (if (eq (find material (quote seqid=)) nil)
+      (concat (quote q=iphone))
     (print  (strdup
              material
-             (find material (storage seqid=))
+             (find material (quote seqid=))
              (strlen material)))))
   
 (defun  worker(socket)
@@ -64,15 +64,15 @@
 
 (defun  terminal (mode lst)
   (if (eq mode 0)
-      (worker (network (connect (storage 127.0.0.1:8888))
-                       (concat (storage q=) lst)))
+      (worker (network (connect (quote 127.0.0.1:8888))
+                       (concat (quote q=) lst)))
     (if (eq mode 1)
-        (pcreate 1 'worker (network (connect (storage 127.0.0.1:8888))
-                                    (concat (storage q=) lst)))
+        (pcreate 1 'worker (network (connect (quote 127.0.0.1:8888))
+                                    (concat (quote q=) lst)))
       (if (eq mode 2)
-          (worker (network (connect (storage 127.0.0.1:8888))
+          (worker (network (connect (quote 127.0.0.1:8888))
                            (ddd lst)))
-        (pcreate 1 'worker (network (connect (storage 127.0.0.1:8888))
+        (pcreate 1 'worker (network (connect (quote 127.0.0.1:8888))
                                     (ddd lst)))))))
 
 (defun  reactor(mode)

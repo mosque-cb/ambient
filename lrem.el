@@ -1,4 +1,4 @@
-(setq  listredis (dcreate ))
+(seq  listredis (dcreate ))
 (print (rpush listredis 'rosslyn 'socket))
 (print (rpush listredis 'rosslyn 'woshishui))
 (print (rpush listredis 'rosslyn 'socket))

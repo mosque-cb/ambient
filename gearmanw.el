@@ -25,18 +25,18 @@
 (defun  findtrunk(socket handle material now)
   (if (eq (car material) 0)
       (progn
-        (print (concat (storage func is:) (for_bytes now)))
+        (print (concat (quote func is:) (for_bytes now)))
         (if (eq (for_bytes now) 'echo)
             (response socket 
                       (concat handle
                               (for_bytes (cons 0 nil))
-                              (storage gearmanw.el_echo_)
+                              (quote gearmanw.el_echo_)
                               (for_bytes (cdr material))))
           (if (eq (for_bytes now) 'rr)
               (response socket 
                         (concat handle
                                 (for_bytes (cons 0 nil))
-                                (storage gearmanw.el_rr_)
+                                (quote gearmanw.el_rr_)
                                 (for_bytes (cdr material))))
             nil)))
     (findtrunk socket  handle (cdr material)
@@ -45,7 +45,7 @@
 (defun  business(socket material now)
   (if (eq (car material) 0)
       (progn
-        (print (concat (storage handle is:) (for_bytes now)))
+        (print (concat (quote handle is:) (for_bytes now)))
         (findtrunk socket 
                    (for_bytes now)
                    (cdr material)
@@ -59,21 +59,21 @@
            (eq (car (cdr (cdr material))) 0)
            (eq (car (cdr (cdr (cdr material)))) 10))
       (progn
-        (print (storage no job))
+        (print (quote no job))
         (waiting socket))
     (if (and (eq (car material) 0)
              (eq (car (cdr material)) 0)
              (eq (car (cdr (cdr material))) 0)
              (eq (car (cdr (cdr (cdr material)))) 6))
         (progn
-          (print (storage job coming))
+          (print (quote job coming))
           (check socket))
       (if (and (eq (car material) 0)
                (eq (car (cdr material)) 0)
                (eq (car (cdr (cdr material))) 0)
                (eq (car (cdr (cdr (cdr material)))) 11))
           (progn
-            (print (storage job assign))
+            (print (quote job assign))
             (business socket 
                       (tail material 8)
                       nil))
@@ -108,7 +108,7 @@
     (send  socket funname)))
 
 (defun  proxy()
-  (connect (storage 0.0.0.0:4780)))
+  (connect (quote 0.0.0.0:4780)))
 
 (defun  noop(socket)
   (progn

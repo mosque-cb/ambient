@@ -1,5 +1,5 @@
-(setq  map_schema  (list 'id 'url 'count))
-(setq  reduce_schema  (list 'id 'count 'url))
+(seq  map_schema  (list 'id 'url 'count))
+(seq  reduce_schema  (list 'id 'count 'url))
 
 (defun  work (f n label)
   (if (eq (funcall f  n)  1)

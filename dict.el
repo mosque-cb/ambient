@@ -1,14 +1,14 @@
-(setq  concern_schema  (list 'gender 'age 'app_interest 'long_term 'life_stage
+(seq  concern_schema  (list 'gender 'age 'app_interest 'long_term 'life_stage
                              'status 'trade 'constellation 'educational_level 'job 'consumption 'device_info 'app_list))
 
 
-(setq  product_schema  (list 'udwid 'otherid 'source))
-(setq  profile_schema  (cons 'udwid (cons 'otherid concern_schema)))
-(setq  map_schema  (cons 'udwid (cons 'logtype (cons 'source  concern_schema))))
+(seq  product_schema  (list 'udwid 'otherid 'source))
+(seq  profile_schema  (cons 'udwid (cons 'otherid concern_schema)))
+(seq  map_schema  (cons 'udwid (cons 'logtype (cons 'source  concern_schema))))
 
-(setq  redis (dcreate))
-(setq  redisx (dcreate))
-(setq  queue 'queue)
+(seq  redis (dcreate))
+(seq  redisx (dcreate))
+(seq  queue 'queue)
 
 
 (defun  map (stream f)
@@ -30,7 +30,7 @@
         (switch_content first now (cdr schema) signal)))))
 
 (defun countsameid (first now)
-  (if  (eq   (dget first queue 'logtype) (storage id_source))
+  (if  (eq   (dget first queue 'logtype) (quote id_source))
       (switch_content first now map_schema 0)
     (dset  first queue 'source  (dget now  queue 'source))))
 
