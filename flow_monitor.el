@@ -16,7 +16,7 @@
             begin
             end)))
 
-(defun exact_qps_helper (material label)
+(defun extract_qps_helper (material label)
   (if (eq material nil)
       nil
     (mystrdup
@@ -24,26 +24,26 @@
      0
      (find material (quote </span></p>)))))
 
-(defun exact_qps (material label)
+(defun extract_qps (material label)
   (if (eq material nil)
       nil
-    (exact_qps_helper
+    (extract_qps_helper
      (mystrdup material
                (add (strlen label) (find material label) 2)
                (strlen material))
      (quote </span></p>))))
 
-(defun prepare_exact_qps (material)
+(defun prepare_extract_qps (material)
   (if (eq material nil)
       nil
-    (exact_qps
+    (extract_qps
      (mystrdup material (find material (quote qps: )) (strlen material))
      (quote user_service_get_place_semantic_info_qps))))
 
 (defun process(material)
   (if (eq material nil)
       nil
-    (prepare_exact_qps
+    (prepare_extract_qps
      (mystrdup material
                (find material (quote <h4>GetPlaceSemanticInfo ))
                (strlen material)))))

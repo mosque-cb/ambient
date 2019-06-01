@@ -1,14 +1,14 @@
-(defun exactquery (material)
+(defun extractquery (material)
   (strdup material
           (add 6 (find material (concat 'query 'BRACKETL)))
           (strlen material)))
 
-(defun exactcontent (material)
+(defun extractcontent (material)
   (strdup material
           0
           (find material 'BRACKETR)))
 
-(defun exactsnki (material begin end)
+(defun extractsnki (material begin end)
   (if  (or (eq begin nil)
            (eq end nil))
       nil
@@ -23,10 +23,10 @@
 
 (defun process(material)
   (wrapconcat
-   (exactcontent
-    (exactquery material))
+   (extractcontent
+    (extractquery material))
    'SPACE
-   (exactsnki
+   (extractsnki
     material
     (find material (quote &ki=))
     (find material (quote &vr_time)))))

@@ -7,7 +7,7 @@
             begin
             end)))
 
-(defun exact_id (material)
+(defun extract_id (material)
   (if (eq material nil)
       nil
     (mystrdup
@@ -15,7 +15,7 @@
      (add 1 (find material (quote >job_)))
      (find material (quote </a></td>)))))
 
-(defun exact_pr(material)
+(defun extract_pr(material)
   (if (eq material nil)
       nil
     (mystrdup
@@ -39,8 +39,8 @@
       (progn
         (print (concat 'business 'SPACE jobname))
         (worker
-         (exact_id (strip jobid))
-         (exact_pr (strip priority)))))
+         (extract_id (strip jobid))
+         (extract_pr (strip priority)))))
     (slot (tail later 14))))
 
 (defun slot (material)
@@ -54,7 +54,7 @@
      (car (cdr (cdr (cdr (cdr material)))))
      (cdr (cdr (cdr (cdr (cdr material))))))))
 
-(defun exact_priority (material)
+(defun extract_priority (material)
   (if (eq material nil)
       nil
     (slot (cdr material))))
@@ -62,7 +62,7 @@
 (defun process(material)
   (if (eq material nil)
       nil
-    (exact_priority
+    (extract_priority
      (split material
             (quote <td>)))))
 

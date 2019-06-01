@@ -72,15 +72,15 @@
                            </html>))))
     nil))
 
-(defun exactcall(material)
+(defun extractcall(material)
   (print (strdup material
                  1
                  (find material 'SPACE))))
 
-(defun exact_status(material)
+(defun extract_status(material)
   (if (eq (find material (quote ?)) nil)
       'page
-    (exactcall (strdup material
+    (extractcall (strdup material
                        (find material (quote ?))
                        (strlen material)))))
 
@@ -89,7 +89,7 @@
     (print lst)
     (if  (not (eq (find (car lst) 'GET) nil))
         (strategy socket 
-                  (print (exact_status (car lst)))
+                  (print (extract_status (car lst)))
                   (randomname))
       (strategy_worker socket
                        (quote Content-Type: text/html) 

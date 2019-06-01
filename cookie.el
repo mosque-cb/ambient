@@ -2,19 +2,19 @@
   (dispatch  (aepoll  event (list times))
              (add times 1)))
 
-(defun exactcookie (lst)
+(defun extractcookie (lst)
   (if  (eq  lst  nil)
       nil
     (if  (not (eq  (find  (car lst) (quote Cookie:)) nil))
         (print (car lst))
-      (exactcookie (cdr lst)))))
+      (extractcookie (cdr lst)))))
 
 (defun  strategy (socket material)
   (send socket
         (concat
          (peer socket)
          'LINE
-         (exactcookie
+         (extractcookie
           (entersplit  material)))))
 
 (defun handle(en socket first)

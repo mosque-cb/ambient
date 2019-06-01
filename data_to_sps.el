@@ -114,7 +114,7 @@
     material))
 
 (defun wraprecv(socket)
-  (fake (makejson (exact (recv  socket 1000000) 'BRACEL))
+  (fake (makejson (extract (recv  socket 1000000) 'BRACEL))
         socket))
 
 (defun genematerial(cuid)

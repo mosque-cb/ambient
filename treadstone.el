@@ -182,13 +182,13 @@
     (if  (eq expr nil)
         (evargslast)
       (progn
-        (progn   (add_long   clink  
+        (progn   (add_array   clink  
                           (cdr (geq expr))))
-        (progn   (add_long   clink  
+        (progn   (add_array   clink  
                           (geq env)))
-        (progn   (add_long   clink  
+        (progn   (add_array   clink  
                           (geq args)))
-        (progn   (add_long   clink  
+        (progn   (add_array   clink  
                           'evargscombi))
         (progn  (seq  expr 
                        (car  (geq expr))))
@@ -225,9 +225,9 @@
                 (popjreturn))
             (if  (eq (car (geq expr))  'if)
                 (progn
-                  (progn   (add_long   clink  
+                  (progn   (add_array   clink  
                                     (geq expr)))
-                  (progn   (add_long   clink  
+                  (progn   (add_array   clink  
                                     'evif))
                   (progn  (seq  expr   
                                  (cadr  (geq expr))))
@@ -236,7 +236,7 @@
                   (wrapdefun  (cdr (geq expr )))
                 (if  (eq (car (geq expr))  'progn)
                     (progn
-                      (progn   (add_long   clink  
+                      (progn   (add_array   clink  
                                         'evprogn))
                       (progn  (seq  expr   
                                      (cdr (geq expr))))
@@ -244,7 +244,7 @@
                                      nil))
                       (evargs))
                   (progn
-                    (progn   (add_long   clink  
+                    (progn   (add_array   clink  
                                       (car  (geq expr))))
                     (progn  (seq  expr   
                                    (cdr (geq expr))))

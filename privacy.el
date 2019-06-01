@@ -12,7 +12,7 @@
             (add begin skip)
             end)))
 
-(defun prepare_exact (material end)
+(defun prepare_extract (material end)
   (if (eq material nil)
       nil
     (strdup material 0 (find material end))))
@@ -20,7 +20,7 @@
 (defun process(material begin end)
   (if (eq material nil)
       nil
-    (prepare_exact
+    (prepare_extract
      (mystrdup material
                (find material begin)
                (strlen begin)

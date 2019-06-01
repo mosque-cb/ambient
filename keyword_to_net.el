@@ -1,5 +1,5 @@
-(defun exactjson(material)
-  (exact material 'BRACEL))
+(defun extractjson(material)
+  (extract material 'BRACEL))
 
 (defun  handlejson (json)
   (progn
@@ -21,7 +21,7 @@
     (print material)))
 
 (defun  get (socket)
-  (send socket (concat (lineconcat (list (quote GET /?debug_info=as&debug_id=123456&wwsy=yes&rows=60&start=0&wt=json&q=你好吗努比亚α我很好&fl=vendor_Name,partnumber,brand_Name,auxdescription,three_groupName,three_groupExtName,author,isbn,unit_searchable_attr,title,two_groupName,threeGroupIds,short_brand_Id HTTP/1.0) 
+  (send socket (concat (lineconcat (list (quote GET /?debug_info=as&debug_id=123456&wwsy=yes&rows=60&start=0&wt=json&q=α5α0αn5700u&fl=vendor_Name,partnumber,brand_Name,auxdescription,three_groupName,three_groupExtName,author,isbn,unit_searchable_attr,title,two_groupName,threeGroupIds,short_brand_Id HTTP/1.0) 
                                          (quote Host: 127.0.0.1) 
                                          (quote U-ApiKey:8b6c51b8a18ccbdae3c7ac74169ec3da) 
                                          (quote Content-Length: 0)

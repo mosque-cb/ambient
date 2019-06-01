@@ -156,13 +156,13 @@
     (if  (eq (geq 'expr) nil)
 	(evargslast)
       (progn
-	(progn   (add_ptr   'clink  
+	(progn   (add_array   'clink  
 			     (cdr (geq 'expr))))
-	(progn   (add_ptr   'clink  
+	(progn   (add_array   'clink  
 			     (geq 'env)))
-	(progn   (add_ptr   'clink  
+	(progn   (add_array   'clink  
 			     (geq 'args)))
-	(progn   (add_ptr   'clink  
+	(progn   (add_array   'clink  
 			     'evargscombi))
 	(progn  (seq  'expr 
 			  (car  (geq 'expr))))
@@ -195,9 +195,9 @@
 	      (popjreturn))
 	  (if  (eq (car (geq 'expr))  'if)
 	      (progn
-		(progn   (add_ptr   'clink  
+		(progn   (add_array   'clink  
 				     (geq 'expr)))
-		(progn   (add_ptr   'clink  
+		(progn   (add_array   'clink  
 				     'evif))
 		(progn  (seq  'expr   
 				  (cadr  (geq 'expr))))
@@ -205,7 +205,7 @@
 	    (if  (eq (car (geq 'expr))  'defun)
 		(wrapdefun  (cdr (geq 'expr )))
 	      (progn
-		(progn   (add_ptr   'clink  
+		(progn   (add_array   'clink  
 				     (car  (geq 'expr))))
 		(progn  (seq  'expr   
 				  (cdr (geq 'expr))))

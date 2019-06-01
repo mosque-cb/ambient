@@ -96,13 +96,13 @@
               filepath
               (ftell filepath)))))
 
-(defun exactcall(material)
+(defun extractcall(material)
   (strdup material
           1
           (find material 'SPACE)))
 
-(defun exact_path(material)
-  (exactcall (strdup material
+(defun extract_path(material)
+  (extractcall (strdup material
                      (find material (quote /))
                      (strlen material))))
 
@@ -111,7 +111,7 @@
     (print lst)
     (if  (not (eq (find (car lst) 'GET) nil))
         (strategy socket 
-                  (print (exact_path (car lst))))
+                  (print (extract_path (car lst))))
       (strategy_worker socket
                        (quote Content-Type: text/html) 
                        (quote  HTTP/1.0 501 Not Implemented)))))

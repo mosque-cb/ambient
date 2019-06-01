@@ -32,12 +32,12 @@
   (if  (eq   (top_ptr  'zendata)  nil)
       (progn
         (remove_ptr   'zendata)
-        (add_ptr  'zendata (remove_ptr   'zencode)))
+        (add_array  'zendata (remove_ptr   'zencode)))
     (progn
-      (add_ptr  'zencode  (car  (top_ptr 'zendata)))
+      (add_array  'zencode  (car  (top_ptr 'zendata)))
       (exchange   'zencode)
       (remove_ptr   'zencode)
-      (add_ptr  'zendata  (cdr  (top_ptr 'zendata)))
+      (add_array  'zendata  (cdr  (top_ptr 'zendata)))
       (exchange   'zendata)
       (remove_ptr   'zendata)
       (evprogn ))))
@@ -46,12 +46,12 @@
   (progn
     (if  (remove_ptr 'zendata)
         (progn
-          (add_ptr  'zencode  (caddr  (top_ptr 'zencode)))
+          (add_array  'zencode  (caddr  (top_ptr 'zencode)))
           (exchange   'zencode)
           (remove_ptr   'zencode)
           (wrapeval))
       (progn
-        (add_ptr  'zencode  (cadr (cddr  (top_ptr 'zencode))))
+        (add_array  'zencode  (cadr (cddr  (top_ptr 'zencode))))
         (exchange   'zencode)
         (remove_ptr   'zencode)
         (wrapeval)))))
@@ -131,38 +131,38 @@
               'evprogn)
         (progn
           (remove_ptr 'zencode)
-          (add_ptr  'zencode  nil)
+          (add_array  'zencode  nil)
           (evprogn)
           (popjreturn))
       (if  (eq  (top_ptr 'zencode)
                 'printpos)
           (progn
             (remove_ptr 'zencode)
-            (add_ptr  'zencode
+            (add_array  'zencode
                        (printpos  (remove_ptr 'zendata)))
-            (add_ptr 'zendata (remove_ptr  'zencode))
+            (add_array 'zendata (remove_ptr  'zencode))
             (popjreturn))
         (if  (eq  (top_ptr 'zencode)
                   'printlst)
             (progn
               (remove_ptr 'zencode)
-              (progn  (add_ptr  'zencode
+              (progn  (add_array  'zencode
                                  (printlst  (remove_ptr  'zendata))))
-              (progn  (add_ptr 'zendata  (remove_ptr 'zencode)))
+              (progn  (add_array 'zendata  (remove_ptr 'zencode)))
               (popjreturn))
           (if  (primitivep  (top_ptr 'zencode))
               (progn
                 (progn  (seq midx
                              (primitive (remove_ptr 'zencode)
                                         (remove_ptr  'zendata))))
-                (progn  (add_ptr 'zendata  midx))
+                (progn  (add_array 'zendata  midx))
                 (popjreturn))
             (sapply)
             ))))))
 
 (defun  sapply ()
   (progn    
-    (progn  (add_ptr 'zencode 
+    (progn  (add_array 'zencode 
                       (findexpr (top_ptr 'zencode)
                                 (geq globaldefun))))
     (progn  (exchange  'zencode))
@@ -171,7 +171,7 @@
                   (bindvars         (car (top_ptr 'zencode))
                                     (remove_ptr  'zendata)
                                     (geq  'env))))
-    (progn  (add_ptr 'zencode  (cadr  (top_ptr 'zencode))))
+    (progn  (add_array 'zencode  (cadr  (top_ptr 'zencode))))
     (progn  (exchange  'zencode))
     (remove_ptr  'zencode)
     (wrapeval)))
@@ -184,7 +184,7 @@
                   b))))
   
 (defun   combi (a b addr)
-  (add_ptr addr
+  (add_array addr
            (append b a)))
 
 (defun   evargscombi ()
@@ -203,19 +203,19 @@
           (remove_ptr  'zencode)
           (evargslast))
       (progn
-        (progn   (add_ptr   'zendata  
+        (progn   (add_array   'zendata  
                              (car (top_ptr 'zencode))))
-        (progn   (add_ptr   'zencode  
+        (progn   (add_array   'zencode  
                              (cdr (top_ptr 'zencode))))
         (progn  (exchange  'zencode))
         (remove_ptr  'zencode)
 
-        (progn   (add_ptr   'zencode  
+        (progn   (add_array   'zencode  
                              (geq 'env)))
 
-        (progn   (add_ptr   'zencode  
+        (progn   (add_array   'zencode  
                              'evargscombi))
-        (progn   (add_ptr   'zencode  
+        (progn   (add_array   'zencode  
                              (remove_ptr  'zendata)))
         (wrapeval)))))
 
@@ -229,58 +229,58 @@
   (progn
     (if  (digitp  (top_ptr 'zencode ))
         (progn
-          (progn  (add_ptr  'zendata
+          (progn  (add_array  'zendata
                              (remove_ptr 'zencode)))
           (popjreturn))
       (if  (eq  (top_ptr 'zencode) nil)
           (progn
-            (progn  (add_ptr  'zendata  (remove_ptr 'zencode)))
+            (progn  (add_array  'zendata  (remove_ptr 'zencode)))
             (popjreturn))
         (if  (charp  (top_ptr 'zencode))
             (progn
-              (progn  (add_ptr  'zendata
+              (progn  (add_array  'zendata
                                  (findvar (remove_ptr 'zencode)
                                           (geq  'env))))
               (popjreturn))
           (if  (eq (car (top_ptr 'zencode))  'quote)
               (progn
-                (progn  (add_ptr  'zendata
+                (progn  (add_array  'zendata
                                    (cadr  (remove_ptr 'zencode))))
                 (popjreturn))
             (if  (eq (car (top_ptr 'zencode))  'if)
                 (progn
-                  (progn   (add_ptr   'zendata
+                  (progn   (add_array   'zendata
                                        (cadr (top_ptr 'zencode))))
-                  (progn   (add_ptr   'zencode  
+                  (progn   (add_array   'zencode  
                                        (top_ptr 'zencode)))
                   (progn   (exchange    'zencode))
                   (remove_ptr  'zencode)
-                  (progn   (add_ptr   'zencode  
+                  (progn   (add_array   'zencode  
                                        'evif))
-                  (progn   (add_ptr   'zencode  (remove_ptr  'zendata)))
+                  (progn   (add_array   'zencode  (remove_ptr  'zendata)))
                   (wrapeval))
               (if  (eq (car (top_ptr 'zencode))  'defun)
                   (wrapdefun  (cdr (remove_ptr 'zencode )))
                 (if  (eq (car (top_ptr 'zencode))  'progn)
                     (progn
-                      (progn  (add_ptr   'zendata  (remove_ptr  'zencode)))
-                      (progn   (add_ptr   'zencode  
+                      (progn  (add_array   'zendata  (remove_ptr  'zencode)))
+                      (progn   (add_array   'zencode  
                                            'evprogn))
-                      (progn   (add_ptr   'zencode  
+                      (progn   (add_array   'zencode  
                                            (cdr  (remove_ptr  'zendata))))
-                      (progn  (add_ptr   'zendata
+                      (progn  (add_array   'zendata
                                           nil))
                       (evargs))
                   (progn
-                    (progn   (add_ptr   'zendata
+                    (progn   (add_array   'zendata
                                          (cdr  (top_ptr 'zencode))))
-                    (progn   (add_ptr   'zencode  
+                    (progn   (add_array   'zencode  
                                          (car  (top_ptr 'zencode))))
                     (progn   (exchange    'zencode))
                     (remove_ptr  'zencode)
-                    (progn   (add_ptr   'zencode  
+                    (progn   (add_array   'zencode  
                                          (remove_ptr  'zendata)))
-                    (progn  (add_ptr  'zendata
+                    (progn  (add_array  'zendata
                                        nil))
                     (evargs)))))))))))
 
@@ -317,7 +317,7 @@
   (if  (eq  lst  nil)
       nil
     (progn
-      (progn   (add_ptr  'zencode  (car  lst)))
+      (progn   (add_array  'zencode  (car  lst)))
       (print   (wrapeval))
       (main (cdr lst)  ))))
 

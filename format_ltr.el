@@ -4,11 +4,11 @@
       (itoa 0)
     (jgetstring (jgetobject json key))))
 
-(defun myexact(json lst)
+(defun myextract(json lst)
   (if (eq lst nil)
       nil
     (cons (helper json (car lst))
-          (myexact json (cdr lst)))))
+          (myextract json (cdr lst)))))
 
 (defun terminal(json)
   (if (eq nil json)
@@ -27,7 +27,7 @@
                    (helper json 'v))
            'SPACE
            (spaceconcat
-            (myexact json (list 'agqs
+            (myextract json (list 'agqs
                                 'fbs
                                 'sqs
                                 'cqs

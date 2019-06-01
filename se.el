@@ -1,7 +1,7 @@
 (defun calc(avalue tmp height mid low lr c)
   (if (eq avalue tmp)
       (progn
-        (add_long c tmp)
+        (add_array c tmp)
         mid)
     (if (eq low height)
         mid
@@ -21,7 +21,7 @@
 
 (defun landr(avalue b height low mid lr c)
   (calc avalue
-        (idx_longs b mid)
+        (idx_array b mid)
         height
         mid
         low
@@ -49,7 +49,7 @@
      a
      alen
      b
-     (wraplr (idx_longs a (minus alen i 1))
+     (wraplr (idx_array a (minus alen i 1))
              b
              br
              bl
@@ -69,7 +69,7 @@
        alen
        b
        br
-       (wraplr (idx_longs a i)
+       (wraplr (idx_array a i)
                b
                br
                bl
@@ -81,9 +81,9 @@
   (se
    0
    a
-   (size_longs a)
+   (size_array a)
    b
-   (minus (size_longs b) 1)
+   (minus (size_array b) 1)
    0
    c))
 
@@ -112,8 +112,21 @@
                       (ctoa (car (cdr lst))))
               (segment (cdr (cdr lst))))))))
 
+(seq (quote mode) nil)
+
 (defun  ivt(key docid)
-  (add_long key docid))
+  (if (geq (quote mode))
+      (add_array key docid)      
+    (if (eq (geq key) nil)
+        (add_array key docid)
+      (if (eq
+           (bsearch
+            (qsort (geq key))
+            docid)
+           nil)
+          (add_array key docid)
+        nil))))
+
 
 (defun  handivt(lst docid)
   (if (eq lst nil)
@@ -122,20 +135,46 @@
       (ivt (car lst) docid)
       (handivt (cdr lst) docid))))
 
+(seq (quote docid) 0)
+
+(defun twist(labelkey value)
+  (progn
+    (seq labelkey value)
+    (seq (quote docid) value)    
+    (seq (concat (quote label:)
+                 (itoa value)) labelkey)
+    value))
+
+(defun getdocid(labelkey)
+  (if (eq (geq labelkey) nil)
+      (twist labelkey (add (geq (quote docid)) 1))
+    (geq labelkey)))
+
+(defun  extractocto(three)
+  (if (eq three nil)
+      nil
+    (getdocid (concat (quote label:)
+                      (car (octosplit three))))))
+
 (defun  wrapstdin(line docid)
   (progn
-    (if (eq (mod docid 10000)
-            0)
-        (print docid)
-      nil)
-    (add_ptr 'forward line)
-    (handivt (segment (dump_bytes line)) docid)
+    (if (geq (quote mode))
+        (progn
+          (add_array 'forward line)
+          (handivt (segment (dump_bytes (car (cdr line)))) docid))
+      (progn
+        (handivt (segment (dump_bytes (car (cdr line))))
+                 (extractocto
+                  (car (cdr 
+                        (cdr (cdr
+                              (cdr (cdr (cdr (cdr (cdr line)))))))))))))
     (reactor (add docid 1))))
 
 (defun  reactor(docid file)
   (if (feof file)
       nil
-    (wrapstdin (strip (fgets file)) docid)))
+    (wrapstdin (tabsplit (strip (fgets file)))
+               docid)))
 
 (defun  wist(a lst)
   (if (eq a nil)
@@ -145,7 +184,7 @@
       (progn
         (wist (dispatch (geq a)
                         (geq (car lst))
-                        (randomname))
+                        (concat a (car lst)))                        
               (cdr lst))))))
 
 (defun  lookup(lst)
@@ -157,21 +196,25 @@
 (defun  helper(col a b)
   (if (big a b)
       (progn
-        (print (idx_ptrs (geq 'forward)
-                         (idx_longs col b)))
+        (if (geq (quote mode))
+            (print (idx_array (geq 'forward)
+                              (idx_array col b)))
+          (print (geq (concat (quote label:)
+                              (itoa
+                               (idx_array col b))))))
         (helper col a (add b 1))
         )
     nil))
 
 (defun  lookforward(col query)
   (progn
-    (helper (geq col)  (size_longs (geq col)) 0)
+    (helper (geq col)  (size_array (geq col)) 0)
     (print (tabconcat (list query
-                            (size_longs (geq col)))))))
+                            (size_array (geq col)))))))
 
 (defun  blend(query)
   (lookforward
-   (lookup (segment (dump_bytes query)))
+   (lookup (segment (dump_bytes (car (cdr query)))))
    query))
 
 (defun  ss()
@@ -179,11 +222,16 @@
       nil  
     (progn
       (print (quote new_query:))
-      (blend (strip (stdin))) 
+      (blend (tabsplit (strip (stdin))))
       (print 'LINE)
       (ss))))
 
+(seq (quote begin) (unixtime))
 (print (quote loading)) 
-(reactor 0 (fopen 'gbk 'r))
-(print (quote loading ok)) 
+(reactor 0 (fopen 'product 'r))
+(print (quote loading ok))
+(print (div (minus (unixtime)
+                   (geq (quote begin)))
+            60))
+
 (ss)

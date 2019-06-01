@@ -32,13 +32,13 @@
       b
     (cons a b)))
 
-(defun  exact_iplist()
+(defun  extract_iplist()
   (if (eofstdin)
       nil
     (progn
       (wrapcons 
        (handler (split (strip (stdin)) (quote :)))
-       (exact_iplist)))))
+       (extract_iplist)))))
 
 (defun loop(alist blist)
   (if (eq alist nil)
@@ -52,4 +52,4 @@
       (sleep 1)
       (loop (cdr alist) (cons (car alist) blist)))))
 
-(loop (exact_iplist) nil)
+(loop (extract_iplist) nil)

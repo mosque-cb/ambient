@@ -1,4 +1,4 @@
-(defun exactsize (lst)
+(defun extractsize (lst)
   (if  (eq lst  nil)
       nil
     (if  (not (eq  (find (car lst) 
@@ -7,7 +7,7 @@
         (print (atoi  (strdup (car lst)
                               (add 2 (find (car lst) (quote : )))
                               (strlen (car lst)))))
-      (exactsize (cdr lst)))))
+      (extractsize (cdr lst)))))
 
 (defun  com(filesize material socket file)
   (if (eq (print filesize) 0)
@@ -41,7 +41,7 @@
                              (add 4 (find material (concat 'LINE 'LINE)))
                              (strlen material)))
         (com
-         (minus (exactsize (linesplit material))
+         (minus (extractsize (linesplit material))
                 (minus (strlen material)
                        (add 4 (find material (concat 'LINE 'LINE)))))
          (recv socket)

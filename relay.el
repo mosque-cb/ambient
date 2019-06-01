@@ -1,5 +1,5 @@
-(defun exactjson(material)
-  (exact material 'BRACEL))
+(defun extractjson(material)
+  (extract material 'BRACEL))
 
 (defun genematerial(echo)
   (jtosx (jaddobject
@@ -60,7 +60,7 @@
   (progn
     (print (jtosx (handlejson 
                    (makejson 
-                    (exactjson 
+                    (extractjson 
                      (recv  socket))))))
     (close socket)))
   

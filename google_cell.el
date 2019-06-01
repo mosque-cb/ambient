@@ -1,4 +1,4 @@
-(defun exactsize (lst)
+(defun extractsize (lst)
   (if  (eq lst  nil)
       nil
     (if  (not (eq  (find (car lst) 
@@ -7,7 +7,7 @@
         (atoi  (strdup (car lst)
                        (add 2 (find (car lst) (quote : )))
                        (strlen (car lst))))
-      (exactsize (cdr lst)))))
+      (extractsize (cdr lst)))))
 
 (defun getdata(lst)
   (list (helper lst)
@@ -31,7 +31,7 @@
         (print (strlen material))
         (if (and (eq 25 (minus  (strlen material)
                                 (add 4 (find material (concat 'LINE 'LINE)))))
-                 (eq 25 (exactsize (linesplit material))))
+                 (eq 25 (extractsize (linesplit material))))
             (print (getdata 
                     (tail 
                           (dump_bytes (strdup material

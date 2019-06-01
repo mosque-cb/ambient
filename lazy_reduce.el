@@ -1,9 +1,3 @@
-(defun caar (lst)
-  (car (car lst)))
-
-(defun cadr (lst)
-  (car (cdr lst)))
-
 (defun cdar (lst)
   (cdr (car lst)))
 
